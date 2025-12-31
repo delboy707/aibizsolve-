@@ -7,9 +7,6 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "QEP AISolve - Move fast without getting exposed",
   description: "From messy business question to board-ready strategic plan — with the rationale, risks, and unconventional options already mapped out. In 20 minutes.",
-  icons: {
-    icon: '/favicon.svg',
-  },
 };
 
 export default function RootLayout({
