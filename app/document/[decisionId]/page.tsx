@@ -34,7 +34,7 @@ export default async function DocumentPage({
     .from('documents')
     .select('*')
     .eq('decision_id', decisionId)
-    .order('created_at', { descending: true })
+    .order('created_at', { ascending: false })
     .limit(1)
     .single();
 
