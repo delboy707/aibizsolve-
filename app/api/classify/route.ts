@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Call Claude Haiku for classification
-    const response = await anthropic.messages.create({
+    const response = await anthropic().messages.create({
       model: MODELS.HAIKU,
       max_tokens: 1024,
       messages: [

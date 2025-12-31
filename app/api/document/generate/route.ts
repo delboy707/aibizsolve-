@@ -165,7 +165,7 @@ export async function POST(req: NextRequest) {
 
     // CALL 1: Generate SCQA Document
     console.log('Generating SCQA document...');
-    const scqaResponse = await anthropic.messages.create({
+    const scqaResponse = await anthropic().messages.create({
       model: MODELS.OPUS,
       max_tokens: 4096,
       messages: [{
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
         .replace('{intent}', decision.classified_intent || 'explore')
         .replace('{challenges}', (decision.classified_challenges || []).join(', '));
 
-      const alchemyResponse = await anthropic.messages.create({
+      const alchemyResponse = await anthropic().messages.create({
         model: MODELS.OPUS,
         max_tokens: 2048,
         messages: [{

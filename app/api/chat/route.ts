@@ -74,7 +74,7 @@ Include both rational and behavioral questions when appropriate.`;
     }
 
     // Call Claude Opus 4.5 for highest quality response
-    const response = await anthropic.messages.create({
+    const response = await anthropic().messages.create({
       model: MODELS.OPUS,
       max_tokens: 2048,
       system: systemPrompt,
