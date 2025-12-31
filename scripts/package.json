@@ -1,0 +1,24 @@
+{
+  "name": "ai-solve-content-pipeline",
+  "version": "1.0.0",
+  "description": "Content pipeline for AI Solve - parse, embed, and load workflow files",
+  "scripts": {
+    "pipeline": "ts-node pipeline.ts",
+    "pipeline:dry": "ts-node pipeline.ts --dry-run",
+    "parse": "ts-node parse-workflows.ts",
+    "embed": "ts-node generate-embeddings.ts",
+    "seed": "ts-node seed-workflows.ts",
+    "verify": "ts-node verify-data.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "dotenv": "^16.3.1",
+    "mammoth": "^1.6.0",
+    "openai": "^4.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.0"
+  }
+}

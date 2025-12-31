@@ -1,0 +1,48 @@
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  /* Primary - Deep Blue (Trust, Authority) */
+  --color-primary-50: #EEF4FF;
+  --color-primary-100: #E0EAFF;
+  --color-primary-200: #C7D7FE;
+  --color-primary-500: #4F6EF7;
+  --color-primary-600: #3B5BDB;
+  --color-primary-700: #2F4AC7;
+  --color-primary-900: #1E2A5E;
+
+  /* Neutral - Warm Gray */
+  --color-gray-50: #FAFAFA;
+  --color-gray-100: #F4F4F5;
+  --color-gray-200: #E4E4E7;
+  --color-gray-300: #D1D5DB;
+  --color-gray-500: #71717A;
+  --color-gray-700: #3F3F46;
+  --color-gray-900: #18181B;
+
+  /* Accent - Teal (Fresh, Modern) */
+  --color-accent-400: #2DD4BF;
+  --color-accent-500: #14B8A6;
+  --color-accent-600: #0D9488;
+
+  /* Semantic */
+  --color-success: #10B981;
+  --color-warning: #F59E0B;
+  --color-error: #EF4444;
+
+  /* Alchemy Section - Warm Highlight */
+  --color-alchemy-bg: #FFFBEB;
+  --color-alchemy-border: #F59E0B;
+  --color-alchemy-text: #92400E;
+
+  /* Font Family */
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-gray-900);
+  background: var(--color-gray-50);
+}

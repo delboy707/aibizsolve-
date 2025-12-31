@@ -1,0 +1,170 @@
+[
+  {
+    "domain": "strategy",
+    "sub_domain": "market_positioning",
+    "source_book": "Good Strategy Bad Strategy",
+    "name": "Competitive Advantage Assessment",
+    "task_summary": "Identify and leverage sustainable competitive advantages through focused positioning",
+    "full_prompt": "Analyze the user's competitive position using these frameworks:\n\n1. Identify the 'kernel' of strategy: diagnosis of the challenge, guiding policy, coherent actions\n2. Assess sources of advantage: cost, differentiation, focus\n3. Evaluate sustainability: barriers to imitation, network effects, switching costs\n4. Map competitive dynamics and likely responses\n5. Recommend 2-3 focused strategic thrusts\n\nOutput: SCQA format with diagnosis, strategic options, recommended path, 90-day action plan",
+    "key_questions": [
+      "What makes you different from competitors?",
+      "What do customers value that you deliver better than anyone else?",
+      "Can competitors easily copy your approach?",
+      "Where are you choosing NOT to compete?"
+    ],
+    "problem_patterns": [
+      "competitors winning",
+      "losing market share",
+      "commoditization",
+      "price pressure",
+      "need differentiation"
+    ],
+    "synergy_triggers": ["marketing", "sales", "innovation"],
+    "complexity": "high",
+    "estimated_duration_min": 45
+  },
+  {
+    "domain": "marketing",
+    "sub_domain": "demand_generation",
+    "source_book": "Traction",
+    "name": "Channel Prioritization Framework",
+    "task_summary": "Systematically test and prioritize marketing channels for maximum traction",
+    "full_prompt": "Guide the user through channel selection:\n\n1. List all 19 traction channels relevant to their business\n2. Use the Bullseye Framework: Outer ring (possible), Middle ring (probable), Inner ring (focus)\n3. Design cheap tests for top 3-5 channels\n4. Establish success metrics before testing\n5. Run tests, measure, double down on winners\n\nOutput: Channel strategy with test plan, budget allocation, success metrics, 30-60-90 roadmap",
+    "key_questions": [
+      "Which channels have you tried?",
+      "What's your customer acquisition cost target?",
+      "Where do your best customers discover you today?",
+      "What's your monthly marketing budget?"
+    ],
+    "problem_patterns": [
+      "marketing not working",
+      "high CAC",
+      "low conversions",
+      "unclear channels",
+      "scattered efforts"
+    ],
+    "synergy_triggers": ["sales", "strategy"],
+    "complexity": "medium",
+    "estimated_duration_min": 30
+  },
+  {
+    "domain": "sales",
+    "sub_domain": "sales_process",
+    "source_book": "The Sales Acceleration Formula",
+    "name": "Sales Process Optimization",
+    "task_summary": "Build a data-driven, repeatable sales process that scales",
+    "full_prompt": "Optimize sales operations:\n\n1. Map current sales process stages and conversion rates\n2. Identify bottlenecks using funnel analysis\n3. Calculate key metrics: CAC, LTV, LTV:CAC ratio, sales cycle length\n4. Design experiments to improve conversion at each stage\n5. Build hiring profile for ideal sales rep\n6. Create training and onboarding playbook\n\nOutput: Process documentation, metrics dashboard, improvement roadmap, hiring/training plan",
+    "key_questions": [
+      "What's your current close rate?",
+      "How long is your average sales cycle?",
+      "Where do deals typically stall or die?",
+      "What do your top performers do differently?"
+    ],
+    "problem_patterns": [
+      "inconsistent sales",
+      "long sales cycles",
+      "low close rates",
+      "can't scale sales",
+      "high rep turnover"
+    ],
+    "synergy_triggers": ["marketing", "operations"],
+    "complexity": "medium",
+    "estimated_duration_min": 35
+  },
+  {
+    "domain": "operations",
+    "sub_domain": "process_improvement",
+    "source_book": "The Goal",
+    "name": "Bottleneck Identification & Resolution",
+    "task_summary": "Apply Theory of Constraints to identify and eliminate operational bottlenecks",
+    "full_prompt": "Use Theory of Constraints methodology:\n\n1. Identify the system's constraint (the bottleneck)\n2. Decide how to exploit the constraint (maximize throughput)\n3. Subordinate everything else to that decision\n4. Elevate the constraint (add capacity if needed)\n5. Prevent inertia from becoming the new constraint\n\nOutput: Bottleneck analysis, throughput improvement plan, resource allocation strategy, monitoring metrics",
+    "key_questions": [
+      "Where does work pile up or slow down?",
+      "What resource is always at capacity?",
+      "What delays delivery most often?",
+      "If you could double capacity of one thing, what would it be?"
+    ],
+    "problem_patterns": [
+      "can't keep up",
+      "delays",
+      "low throughput",
+      "capacity constraints",
+      "missed deadlines"
+    ],
+    "synergy_triggers": ["hr", "finance"],
+    "complexity": "high",
+    "estimated_duration_min": 40
+  },
+  {
+    "domain": "hr",
+    "sub_domain": "talent_acquisition",
+    "source_book": "Who: The A Method for Hiring",
+    "name": "A-Player Hiring System",
+    "task_summary": "Implement structured hiring process to consistently hire top performers",
+    "full_prompt": "Build systematic hiring process:\n\n1. Create scorecard: mission, outcomes, competencies\n2. Source candidates: referrals, recruiters, outbound\n3. Run structured interviews: screening, topgrading, focused, reference\n4. Use consistent scoring rubric\n5. Make decision based on data, not gut feel\n6. Design onboarding for success\n\nOutput: Scorecard template, interview guides, evaluation rubric, sourcing plan, onboarding checklist",
+    "key_questions": [
+      "What does success look like in this role in 12 months?",
+      "What are the 3-5 must-have competencies?",
+      "How are you sourcing candidates today?",
+      "What's your current mis-hire rate?"
+    ],
+    "problem_patterns": [
+      "bad hires",
+      "can't find talent",
+      "high turnover",
+      "slow hiring",
+      "inconsistent interviews"
+    ],
+    "synergy_triggers": ["operations", "finance"],
+    "complexity": "medium",
+    "estimated_duration_min": 30
+  },
+  {
+    "domain": "finance",
+    "sub_domain": "unit_economics",
+    "source_book": "Financial Intelligence",
+    "name": "Unit Economics Analysis",
+    "task_summary": "Calculate and optimize unit economics to ensure sustainable profitability",
+    "full_prompt": "Analyze business model viability:\n\n1. Calculate Customer Acquisition Cost (CAC)\n2. Calculate Lifetime Value (LTV)\n3. Compute LTV:CAC ratio (target: 3:1 or better)\n4. Identify payback period (target: <12 months)\n5. Map cash conversion cycle\n6. Model scenarios for improvement\n\nOutput: Unit economics dashboard, profitability analysis, improvement levers, financial model",
+    "key_questions": [
+      "What does it cost to acquire a customer?",
+      "How much revenue does an average customer generate?",
+      "How long do customers typically stay?",
+      "What's your gross margin?"
+    ],
+    "problem_patterns": [
+      "not profitable",
+      "unit economics don't work",
+      "burning cash",
+      "negative margins",
+      "high churn"
+    ],
+    "synergy_triggers": ["strategy", "marketing", "sales"],
+    "complexity": "medium",
+    "estimated_duration_min": 35
+  },
+  {
+    "domain": "innovation",
+    "sub_domain": "product_development",
+    "source_book": "The Lean Startup",
+    "name": "Build-Measure-Learn Framework",
+    "task_summary": "Apply lean methodology to validate product ideas quickly and cheaply",
+    "full_prompt": "Implement lean product development:\n\n1. Identify riskiest assumption (leap of faith)\n2. Design Minimum Viable Product (MVP) to test it\n3. Define actionable metrics (not vanity metrics)\n4. Build MVP with minimal resources\n5. Measure real customer behavior\n6. Learn: pivot or persevere decision\n\nOutput: Hypothesis document, MVP spec, success metrics, test plan, decision framework",
+    "key_questions": [
+      "What assumption, if wrong, would kill this idea?",
+      "What's the cheapest way to test that assumption?",
+      "How will you measure success?",
+      "What would make you pivot vs double down?"
+    ],
+    "problem_patterns": [
+      "building wrong thing",
+      "no product-market fit",
+      "slow to ship",
+      "wasted development",
+      "features customers don't use"
+    ],
+    "synergy_triggers": ["strategy", "marketing"],
+    "complexity": "medium",
+    "estimated_duration_min": 30
+  }
+]
