@@ -64,40 +64,46 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
-  // Get user for protected routes only
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    // Get user for protected routes only
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  // If user is not logged in and trying to access protected routes
-  if (!user && !request.nextUrl.pathname.startsWith('/auth')) {
-    return NextResponse.redirect(new URL('/auth', request.url));
-  }
-
-  // If user is logged in, check trial expiration for non-paying users
-  if (user) {
-    try {
-      const { data: userData } = await supabase
-        .from('users')
-        .select('payment_tier, trial_ends_at, monthly_payment')
-        .eq('id', user.id)
-        .single();
-
-      // Check if trial has expired and user has no active payment
-      const trialExpired =
-        userData?.payment_tier === 'trial' &&
-        new Date() > new Date(userData.trial_ends_at || 0);
-
-      const hasActivePayment = userData?.monthly_payment && userData.monthly_payment > 0;
-
-      // If trial expired and no payment, redirect to pricing
-      if (trialExpired && !hasActivePayment && !request.nextUrl.pathname.startsWith('/pricing')) {
-        return NextResponse.redirect(new URL('/pricing?expired=true', request.url));
-      }
-    } catch (error) {
-      // If database query fails, allow access (don't break the app)
-      console.error('Middleware database error:', error);
+    // If user is not logged in and trying to access protected routes
+    if (!user && !request.nextUrl.pathname.startsWith('/auth')) {
+      return NextResponse.redirect(new URL('/auth', request.url));
     }
+
+    // If user is logged in, check trial expiration for non-paying users
+    if (user) {
+      try {
+        const { data: userData } = await supabase
+          .from('users')
+          .select('payment_tier, trial_ends_at, monthly_payment')
+          .eq('id', user.id)
+          .single();
+
+        // Check if trial has expired and user has no active payment
+        const trialExpired =
+          userData?.payment_tier === 'trial' &&
+          new Date() > new Date(userData.trial_ends_at || 0);
+
+        const hasActivePayment = userData?.monthly_payment && userData.monthly_payment > 0;
+
+        // If trial expired and no payment, redirect to pricing
+        if (trialExpired && !hasActivePayment && !request.nextUrl.pathname.startsWith('/pricing')) {
+          return NextResponse.redirect(new URL('/pricing?expired=true', request.url));
+        }
+      } catch (error) {
+        // If database query fails, allow access (don't break the app)
+        console.error('Middleware database error:', error);
+      }
+    }
+  } catch (error) {
+    // If auth check fails, allow access to prevent complete failure
+    console.error('Middleware auth error:', error);
+    return response;
   }
 
   return response;
