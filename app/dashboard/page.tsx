@@ -82,7 +82,7 @@ export default async function DashboardPage() {
                 <span className="text-3xl">1️⃣</span>
                 <h3 className="font-semibold">Describe Your Problem</h3>
               </div>
-              <p className="text-sm text-primary-50">Tell us your business challenge in plain English</p>
+              <p className="text-sm text-primary-50">Tell us your business challenge and/or upload documents</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
