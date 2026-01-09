@@ -54,6 +54,21 @@ export interface Message {
 
 // Document types
 export type DocumentFormat = 'markdown' | 'pdf' | 'docx';
+export type ProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
+
+export interface UploadedDocument {
+  id: string;
+  user_id: string;
+  decision_id: string | null;
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  storage_path: string;
+  extracted_text: string | null;
+  processing_status: ProcessingStatus;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface AlchemyContent {
   counterintuitive: string;

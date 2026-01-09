@@ -41,6 +41,24 @@ export async function POST(req: NextRequest) {
       .eq('decision_id', decisionId)
       .order('created_at', { ascending: true });
 
+    // Get uploaded documents for this decision
+    const { data: uploadedDocs } = await supabase
+      .from('uploaded_documents')
+      .select('*')
+      .eq('decision_id', decisionId)
+      .eq('processing_status', 'completed')
+      .order('created_at', { ascending: true });
+
+    // Build document context
+    let documentContext = '';
+    if (uploadedDocs && uploadedDocs.length > 0) {
+      documentContext = '\n\n**UPLOADED DOCUMENTS CONTEXT:**\n\n';
+      uploadedDocs.forEach((doc, index) => {
+        documentContext += `Document ${index + 1}: ${doc.file_name}\n`;
+        documentContext += `${doc.extracted_text}\n\n---\n\n`;
+      });
+    }
+
     // Build conversation context for Claude
     const conversationHistory = messages?.map((msg) => ({
       role: msg.role === 'user' ? 'user' : 'assistant',
@@ -59,17 +77,17 @@ export async function POST(req: NextRequest) {
 
     if (decision.status === 'intake') {
       // First interaction - ask clarifying questions
-      systemPrompt = CLARIFYING_PROMPT;
+      systemPrompt = CLARIFYING_PROMPT + documentContext;
       stepLabel = 'Understanding your problem';
     } else if (decision.status === 'clarifying') {
       // Continue asking questions or move to processing
       systemPrompt = `Continue the conversation naturally. If you have enough information to provide strategic recommendations, say so and ask if they're ready to see the analysis. Otherwise, ask 1-2 more clarifying questions.
 
-Include both rational and behavioral questions when appropriate.`;
+Include both rational and behavioral questions when appropriate.${documentContext}`;
       stepLabel = 'Gathering context';
     } else {
       // General conversation
-      systemPrompt = `You are a strategic business consultant. Continue the conversation naturally, providing insights and asking relevant follow-up questions.`;
+      systemPrompt = `You are a strategic business consultant. Continue the conversation naturally, providing insights and asking relevant follow-up questions.${documentContext}`;
       stepLabel = 'Analyzing';
     }
 
