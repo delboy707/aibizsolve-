@@ -17,6 +17,7 @@ interface DocumentClientProps {
 export default function DocumentClient({ decisionId, document }: DocumentClientProps) {
   const [activeTab, setActiveTab] = useState<'strategic' | 'alchemy'>('strategic');
   const [mounted, setMounted] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -91,6 +92,33 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
     const content = getCurrentContent();
     navigator.clipboard.writeText(content);
     alert(`${activeTab === 'strategic' ? 'Strategic document' : 'Alchemy section'} copied to clipboard!`);
+  };
+
+  // Regenerate document
+  const handleRegenerate = async () => {
+    if (!confirm('Regenerate this strategic document? This will create a new version with updated insights based on the latest conversation.')) {
+      return;
+    }
+
+    setRegenerating(true);
+    try {
+      const response = await fetch('/api/document/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decisionId }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate document');
+      }
+
+      // Reload page to show new document
+      window.location.reload();
+    } catch (error) {
+      console.error('Regeneration error:', error);
+      alert('Failed to regenerate document. Please try again.');
+      setRegenerating(false);
+    }
   };
 
   // Parse content into sections with copy buttons
@@ -360,12 +388,37 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
             >
               Copy {activeTab === 'strategic' ? 'Strategic Document' : 'Alchemy Insights'}
             </button>
-            <Link
-              href={`/chat/${decisionId}`}
-              className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm"
-            >
-              Continue Conversation
-            </Link>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRegenerate}
+                disabled={regenerating}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                title="Regenerate document with latest conversation insights"
+              >
+                {regenerating ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Regenerate
+                  </>
+                )}
+              </button>
+              <Link
+                href={`/chat/${decisionId}`}
+                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm"
+              >
+                Continue Conversation
+              </Link>
+            </div>
           </div>
         </div>
       </main>
