@@ -3,6 +3,48 @@ import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { ExampleLibrary } from '@/components/examples/ExampleLibrary';
 import { DecisionsList } from '@/components/dashboard/DecisionsList';
+import { UsageAnalytics } from '@/components/dashboard/UsageAnalytics';
+import type { Decision } from '@/types';
+
+// Helper functions
+function getMostCommonDomain(decisions: Decision[]): string | null {
+  if (!decisions.length) return null;
+
+  const domainCounts: Record<string, number> = {};
+  decisions.forEach(d => {
+    if (d.classified_domains && d.classified_domains.length > 0) {
+      d.classified_domains.forEach((domain: string) => {
+        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
+      });
+    }
+  });
+
+  const entries = Object.entries(domainCounts);
+  if (entries.length === 0) return null;
+
+  const [mostCommon] = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
+  return mostCommon;
+}
+
+function calculateAvgGenerationTime(decisions: Decision[]): number | null {
+  const completedWithTimes = decisions.filter(d => {
+    if (d.status !== 'complete') return false;
+    const created = new Date(d.created_at).getTime();
+    const updated = new Date(d.updated_at).getTime();
+    return updated > created;
+  });
+
+  if (completedWithTimes.length === 0) return null;
+
+  const totalMinutes = completedWithTimes.reduce((sum, d) => {
+    const created = new Date(d.created_at).getTime();
+    const updated = new Date(d.updated_at).getTime();
+    const minutes = (updated - created) / (1000 * 60);
+    return sum + minutes;
+  }, 0);
+
+  return Math.round(totalMinutes / completedWithTimes.length);
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -26,6 +68,29 @@ export default async function DashboardPage() {
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
+
+  // Calculate analytics
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  const analytics = {
+    total: decisions?.length || 0,
+    thisMonth: decisions?.filter(d => new Date(d.created_at) >= startOfMonth).length || 0,
+    last30Days: decisions?.filter(d => new Date(d.created_at) >= thirtyDaysAgo).length || 0,
+    completed: decisions?.filter(d => d.status === 'complete').length || 0,
+    inProgress: decisions?.filter(d => ['intake', 'clarifying', 'processing'].includes(d.status)).length || 0,
+    archived: decisions?.filter(d => d.status === 'archived').length || 0,
+    mostCommonDomain: getMostCommonDomain(decisions || []),
+    avgGenerationTime: calculateAvgGenerationTime(decisions || []),
+  };
+
+  // Calculate trial days remaining
+  const trialEndsAt = userData?.trial_ends_at ? new Date(userData.trial_ends_at) : null;
+  const trialDaysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
+    : 0;
+  const isTrialActive = userData?.payment_tier === 'trial' && trialDaysRemaining > 0;
 
   const handleSignOut = async () => {
     'use server';
@@ -136,6 +201,13 @@ export default async function DashboardPage() {
             </Link>
           </div>
         </div>
+
+        {/* Usage Analytics */}
+        <UsageAnalytics
+          analytics={analytics}
+          isTrialActive={isTrialActive}
+          trialDaysRemaining={trialDaysRemaining}
+        />
 
         {/* New Decision Button with Instructions */}
         <div className="mb-8">
