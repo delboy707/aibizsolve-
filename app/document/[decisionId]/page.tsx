@@ -29,6 +29,18 @@ export default async function DocumentPage({
     redirect('/dashboard');
   }
 
+  // Fetch user data for payment tier
+  const { data: userData } = await supabase
+    .from('users')
+    .select('payment_tier, trial_ends_at')
+    .eq('id', user.id)
+    .single();
+
+  // Check Alchemy access
+  const hasAlchemyAccess =
+    (userData?.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at || 0)) ||
+    ['average', 'above_average'].includes(userData?.payment_tier || '');
+
   // Fetch document
   const { data: document } = await supabase
     .from('documents')
@@ -56,5 +68,11 @@ export default async function DocumentPage({
     );
   }
 
-  return <DocumentClient decisionId={decisionId} document={document} />;
+  return (
+    <DocumentClient
+      decisionId={decisionId}
+      document={document}
+      hasAlchemyAccess={hasAlchemyAccess}
+    />
+  );
 }

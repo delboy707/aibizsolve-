@@ -12,9 +12,10 @@ interface DocumentClientProps {
     content: string;
     created_at: string;
   };
+  hasAlchemyAccess: boolean;
 }
 
-export default function DocumentClient({ decisionId, document }: DocumentClientProps) {
+export default function DocumentClient({ decisionId, document, hasAlchemyAccess }: DocumentClientProps) {
   const [activeTab, setActiveTab] = useState<'strategic' | 'alchemy'>('strategic');
   const [mounted, setMounted] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -297,22 +298,28 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
                 <p className="text-xs mt-1 text-gray-500">Sections 1-7: SCQA Framework</p>
               </button>
 
-              {hasAlchemy && (
-                <button
-                  onClick={() => setActiveTab('alchemy')}
-                  className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
-                    activeTab === 'alchemy'
-                      ? 'text-warning border-b-2 border-warning bg-alchemy-bg'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <span>⚗️</span>
-                    <span>Alchemy Insights</span>
-                  </div>
-                  <p className="text-xs mt-1 text-gray-500">Counterintuitive Options</p>
-                </button>
-              )}
+              <button
+                onClick={() => hasAlchemyAccess && hasAlchemy && setActiveTab('alchemy')}
+                disabled={!hasAlchemyAccess || !hasAlchemy}
+                className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
+                  activeTab === 'alchemy' && hasAlchemyAccess && hasAlchemy
+                    ? 'text-warning border-b-2 border-warning bg-alchemy-bg'
+                    : !hasAlchemyAccess || !hasAlchemy
+                    ? 'text-gray-400 cursor-not-allowed opacity-60 relative'
+                    : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                }`}
+              >
+                <div className="flex items-center justify-center gap-2">
+                  <span>⚗️</span>
+                  <span>Alchemy Insights</span>
+                  {(!hasAlchemyAccess || !hasAlchemy) && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🔒 Premium</span>
+                  )}
+                </div>
+                <p className="text-xs mt-1">
+                  {hasAlchemyAccess && hasAlchemy ? 'Counterintuitive Options' : 'Upgrade to unlock'}
+                </p>
+              </button>
             </div>
           </div>
 
@@ -344,7 +351,7 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
                   {parseSections(strategicContent, false)}
                 </div>
               </div>
-            ) : (
+            ) : hasAlchemyAccess && hasAlchemy ? (
               <div>
                 <div className="mb-6 p-4 bg-alchemy-bg border border-alchemy-border rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
@@ -371,6 +378,66 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
 
                 <div className="prose prose-slate max-w-none">
                   {parseSections(alchemyContent, true)}
+                </div>
+              </div>
+            ) : (
+              <div className="max-w-2xl mx-auto text-center py-16">
+                <div className="mb-8">
+                  <span className="text-6xl">⚗️</span>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                  Unlock Counterintuitive Options
+                </h3>
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  The Alchemy section provides behavioral insights that challenge conventional thinking.
+                  Most consultants give you the rational answer. We give you options they won't consider.
+                </p>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
+                  <h4 className="font-semibold text-amber-900 mb-3">
+                    What You're Missing:
+                  </h4>
+                  <div className="text-left text-sm text-amber-800 space-y-2">
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600">•</span>
+                      <div>
+                        <strong>The Opposite Lens</strong> — What if we did the exact reverse of the obvious solution?
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600">•</span>
+                      <div>
+                        <strong>The Perception Lens</strong> — Change how it feels rather than what it is
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600">•</span>
+                      <div>
+                        <strong>The Signal Lens</strong> — Make it feel valuable without changing substance
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="text-amber-600">•</span>
+                      <div>
+                        <strong>The Small Bet Lens</strong> — Micro-interventions under $10K with outsized impact
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-600">
+                    <strong>Alchemy insights are included for users who pay at or above their segment average.</strong>
+                  </p>
+                  <Link
+                    href="/pricing"
+                    className="inline-block px-8 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold shadow-sm"
+                  >
+                    Upgrade to Unlock Alchemy
+                  </Link>
+                  <p className="text-xs text-gray-500">
+                    Most users pay $50-150/month. You decide what it's worth.
+                  </p>
                 </div>
               </div>
             )}
