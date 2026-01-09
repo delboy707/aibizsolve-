@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import pdf from 'pdf-parse';
-import mammoth from 'mammoth';
 
 export async function POST(req: NextRequest) {
   try {
@@ -44,10 +42,15 @@ export async function POST(req: NextRequest) {
     // Extract text based on file type
     if (document.file_type === 'application/pdf') {
       const buffer = Buffer.from(await fileData.arrayBuffer());
-      const pdfData = await pdf(buffer);
+      // Dynamic import for pdf-parse (CommonJS module)
+      // @ts-ignore - pdf-parse has CommonJS export issues
+      const pdfParse = (await import('pdf-parse')).default;
+      const pdfData = await pdfParse(buffer);
       extractedText = pdfData.text;
     } else if (document.file_type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       const buffer = Buffer.from(await fileData.arrayBuffer());
+      // Dynamic import for mammoth
+      const mammoth = await import('mammoth');
       const result = await mammoth.extractRawText({ buffer });
       extractedText = result.value;
     } else if (document.file_type === 'text/plain' || document.file_type === 'text/csv') {

@@ -1,13 +1,19 @@
 import Stripe from 'stripe';
 
-if (!process.env.STRIPE_SECRET_KEY) {
-  throw new Error('STRIPE_SECRET_KEY is not set');
-}
+let stripeClient: Stripe | null = null;
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-12-15.clover',
-  typescript: true,
-});
+export const stripe = (): Stripe => {
+  if (!stripeClient) {
+    if (!process.env.STRIPE_SECRET_KEY) {
+      throw new Error('STRIPE_SECRET_KEY is not set');
+    }
+    stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2025-12-15.clover',
+      typescript: true,
+    });
+  }
+  return stripeClient;
+};
 
 // Helper to get or create Stripe customer
 export async function getOrCreateStripeCustomer(userId: string, email: string) {
@@ -26,7 +32,7 @@ export async function getOrCreateStripeCustomer(userId: string, email: string) {
   }
 
   // Create new Stripe customer
-  const customer = await stripe.customers.create({
+  const customer = await stripe().customers.create({
     email,
     metadata: {
       supabase_user_id: userId,
