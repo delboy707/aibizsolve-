@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import type { Decision } from '@/types';
 import { ExampleLibrary } from '@/components/examples/ExampleLibrary';
+import { DecisionsList } from '@/components/dashboard/DecisionsList';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -157,80 +157,7 @@ export default async function DashboardPage() {
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Decisions</h2>
 
           {decisions && decisions.length > 0 ? (
-            <div className="grid gap-4">
-              {decisions.map((decision: Decision) => (
-                <div
-                  key={decision.id}
-                  className="bg-white p-6 rounded-xl border border-gray-200 hover:border-primary-500 hover:shadow-md transition-all"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {decision.problem_statement?.substring(0, 100) || 'Untitled Decision'}
-                      {decision.problem_statement && decision.problem_statement.length > 100 && '...'}
-                    </h3>
-                    <span className={`text-xs px-3 py-1 rounded-full font-medium ${
-                      decision.status === 'complete'
-                        ? 'bg-green-50 text-green-700 border border-green-200'
-                        : decision.status === 'clarifying'
-                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                        : 'bg-gray-100 text-gray-600 border border-gray-200'
-                    }`}>
-                      {decision.status}
-                    </span>
-                  </div>
-
-                  {decision.classified_domains && decision.classified_domains.length > 0 && (
-                    <div className="flex gap-2 mb-3">
-                      {decision.classified_domains.map((domain: string) => (
-                        <span key={domain} className="text-xs bg-primary-50 text-primary-700 px-2 py-1 rounded border border-primary-200">
-                          {domain}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2 text-xs text-gray-500 mb-4">
-                    <span>Created {new Date(decision.created_at).toLocaleDateString()}</span>
-                    {decision.classified_intent && (
-                      <span>• Intent: {decision.classified_intent}</span>
-                    )}
-                  </div>
-
-                  {decision.status === 'complete' && (
-                    <div className="mb-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <p className="text-xs text-green-800">
-                        ✓ <strong>Document ready!</strong> View your strategic plan + Alchemy insights
-                      </p>
-                    </div>
-                  )}
-
-                  {decision.status === 'clarifying' && (
-                    <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-xs text-blue-800">
-                        💬 <strong>In progress:</strong> Continue answering questions, then generate document (appears after 3+ messages)
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="flex gap-3">
-                    <Link
-                      href={`/chat/${decision.id}`}
-                      className="flex-1 text-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                    >
-                      {decision.status === 'complete' ? 'Continue Chat' : 'Continue'}
-                    </Link>
-                    {decision.status === 'complete' && (
-                      <Link
-                        href={`/document/${decision.id}`}
-                        className="flex-1 text-center px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-colors text-sm font-medium"
-                      >
-                        📄 View Document
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+            <DecisionsList decisions={decisions} />
           ) : (
             <div className="space-y-8">
               {/* Empty State Message */}
