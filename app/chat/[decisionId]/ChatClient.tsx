@@ -80,7 +80,7 @@ export default function ChatClient({
         content,
       });
 
-      // Call AI API to generate response
+      // Call AI API with streaming
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -96,7 +96,66 @@ export default function ChatClient({
         throw new Error('Failed to get AI response');
       }
 
-      // Response will be saved by API and synced via real-time subscription
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let streamingMessageId: string | null = null;
+      let accumulatedText = '';
+
+      if (reader) {
+        // Create a temporary streaming message
+        const tempMessage: Message = {
+          id: 'streaming-temp',
+          decision_id: decisionId,
+          role: 'assistant',
+          content: '',
+          step_label: null,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, tempMessage]);
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+
+                if (data.type === 'content') {
+                  accumulatedText += data.text;
+                  // Update the streaming message
+                  setMessages(prev =>
+                    prev.map(msg =>
+                      msg.id === 'streaming-temp'
+                        ? { ...msg, content: accumulatedText }
+                        : msg
+                    )
+                  );
+                } else if (data.type === 'done') {
+                  // Replace temp message with real saved message
+                  setMessages(prev =>
+                    prev.map(msg =>
+                      msg.id === 'streaming-temp' ? data.message : msg
+                    )
+                  );
+                  streamingMessageId = data.message.id;
+                } else if (data.type === 'error') {
+                  console.error('Streaming error:', data.error);
+                  // Remove temp message on error
+                  setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
+                }
+              } catch (e) {
+                // Ignore JSON parse errors for incomplete chunks
+              }
+            }
+          }
+        }
+      }
     } catch (error) {
       console.error('Error sending message:', error);
       throw error;

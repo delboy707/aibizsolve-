@@ -163,9 +163,9 @@ export async function POST(req: NextRequest) {
       .replace('{workflows}', workflowsSummary)
       .replace('{conversation}', conversationSummary);
 
-    // CALL 1: Generate SCQA Document
+    // CALL 1: Generate SCQA Document with streaming
     console.log('Generating SCQA document...');
-    const scqaResponse = await anthropic().messages.create({
+    const scqaStream = await anthropic().messages.stream({
       model: MODELS.OPUS,
       max_tokens: 4096,
       messages: [{
@@ -174,12 +174,12 @@ export async function POST(req: NextRequest) {
       }],
     });
 
-    const scqaContent = scqaResponse.content[0];
-    if (scqaContent.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
+    let scqaDocument = '';
+    for await (const chunk of scqaStream) {
+      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+        scqaDocument += chunk.delta.text;
+      }
     }
-
-    const scqaDocument = scqaContent.text;
 
     // CALL 2: Generate Alchemy Layer (only for users with access)
     let alchemySection = '';
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
         .replace('{intent}', decision.classified_intent || 'explore')
         .replace('{challenges}', (decision.classified_challenges || []).join(', '));
 
-      const alchemyResponse = await anthropic().messages.create({
+      const alchemyStream = await anthropic().messages.stream({
         model: MODELS.OPUS,
         max_tokens: 2048,
         messages: [{
@@ -203,12 +203,11 @@ export async function POST(req: NextRequest) {
         }],
       });
 
-      const alchemyContent = alchemyResponse.content[0];
-      if (alchemyContent.type !== 'text') {
-        throw new Error('Unexpected response type from Claude');
+      for await (const chunk of alchemyStream) {
+        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+          alchemySection += chunk.delta.text;
+        }
       }
-
-      alchemySection = alchemyContent.text;
       fullDocument = `${scqaDocument}\n\n---\n\n## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemySection}`;
     } else {
       // Add teaser for users without access

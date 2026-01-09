@@ -91,49 +91,75 @@ Include both rational and behavioral questions when appropriate.${documentContex
       stepLabel = 'Analyzing';
     }
 
-    // Call Claude Opus 4.5 for highest quality response
-    const response = await anthropic().messages.create({
+    // Call Claude Opus 4.5 with streaming for highest quality response
+    const stream = await anthropic().messages.stream({
       model: MODELS.OPUS,
       max_tokens: 2048,
       system: systemPrompt,
       messages: conversationHistory as Array<{ role: 'user' | 'assistant'; content: string }>,
     });
 
-    const content = response.content[0];
-    if (content.type !== 'text') {
-      throw new Error('Unexpected response type from Claude');
-    }
+    // Create readable stream for SSE
+    const encoder = new TextEncoder();
+    let fullResponse = '';
 
-    const assistantMessage = content.text;
+    const readableStream = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              const text = chunk.delta.text;
+              fullResponse += text;
 
-    // Save assistant's response to database
-    const { data: savedMessage, error: saveError } = await supabase
-      .from('messages')
-      .insert({
-        decision_id: decisionId,
-        role: 'assistant',
-        content: assistantMessage,
-        step_label: stepLabel,
-      })
-      .select()
-      .single();
+              // Send SSE format
+              const data = JSON.stringify({ type: 'content', text });
+              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            }
+          }
 
-    if (saveError) {
-      console.error('Error saving message:', saveError);
-      throw saveError;
-    }
+          // Save complete response to database
+          const { data: savedMessage, error: saveError } = await supabase
+            .from('messages')
+            .insert({
+              decision_id: decisionId,
+              role: 'assistant',
+              content: fullResponse,
+              step_label: stepLabel,
+            })
+            .select()
+            .single();
 
-    // Update decision status if still in intake
-    if (decision.status === 'intake') {
-      await supabase
-        .from('decisions')
-        .update({ status: 'clarifying' })
-        .eq('id', decisionId);
-    }
+          if (saveError) {
+            console.error('Error saving message:', saveError);
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: 'Failed to save message' })}\n\n`));
+          } else {
+            // Send completion event with saved message
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'done', message: savedMessage })}\n\n`));
+          }
 
-    return NextResponse.json({
-      message: savedMessage,
-      response: assistantMessage,
+          // Update decision status if still in intake
+          if (decision.status === 'intake') {
+            await supabase
+              .from('decisions')
+              .update({ status: 'clarifying' })
+              .eq('id', decisionId);
+          }
+
+          controller.close();
+        } catch (error) {
+          console.error('Streaming error:', error);
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: 'Streaming failed' })}\n\n`));
+          controller.close();
+        }
+      },
+    });
+
+    return new Response(readableStream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+      },
     });
   } catch (error) {
     console.error('Chat API error:', error);
