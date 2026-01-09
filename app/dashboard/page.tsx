@@ -89,7 +89,7 @@ export default async function DashboardPage() {
                 <span className="text-3xl">2️⃣</span>
                 <h3 className="font-semibold">Answer Questions</h3>
               </div>
-              <p className="text-sm text-primary-50">Claude asks 2-4 clarifying questions to understand context</p>
+              <p className="text-sm text-primary-50">Our AI Database will ask you 2-4 clarifying questions to understand context</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
