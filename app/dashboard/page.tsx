@@ -245,7 +245,7 @@ export default async function DashboardPage() {
               </div>
 
               {/* Example Library */}
-              <ExampleLibrary />
+              <ExampleLibrary ctaHref="/chat" ctaText="Start Your Strategic Analysis" />
             </div>
           )}
         </div>

@@ -4,7 +4,15 @@ import { exampleDocuments, ExampleDocument } from '@/lib/data/exampleDocuments';
 import { useState } from 'react';
 import { ExamplePreviewModal } from './ExamplePreviewModal';
 
-export function ExampleLibrary() {
+interface ExampleLibraryProps {
+  ctaHref?: string; // Default to /auth for landing page, or /chat for dashboard
+  ctaText?: string;
+}
+
+export function ExampleLibrary({
+  ctaHref = '/auth',
+  ctaText = 'Start Free Trial'
+}: ExampleLibraryProps) {
   const [selectedExample, setSelectedExample] = useState<ExampleDocument | null>(null);
 
   return (
@@ -77,10 +85,10 @@ export function ExampleLibrary() {
             Get a strategic document like these for your specific problem — in 20 minutes.
           </p>
           <a
-            href="/chat"
+            href={ctaHref}
             className="inline-block py-3 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold"
           >
-            Start Your Strategic Analysis
+            {ctaText}
           </a>
         </div>
       </div>
@@ -90,6 +98,7 @@ export function ExampleLibrary() {
         <ExamplePreviewModal
           example={selectedExample}
           onClose={() => setSelectedExample(null)}
+          ctaHref={ctaHref}
         />
       )}
     </>

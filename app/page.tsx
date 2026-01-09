@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ExampleLibrary } from "@/components/examples/ExampleLibrary";
 
 export default function Home() {
   return (
@@ -53,6 +54,11 @@ export default function Home() {
               28 days free. Then pay what it's worth — $10 minimum, most pay $50-150/month.
             </p>
           </div>
+        </div>
+
+        {/* Example Library Section */}
+        <div className="mt-32">
+          <ExampleLibrary />
         </div>
 
         {/* Features */}

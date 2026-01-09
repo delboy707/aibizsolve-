@@ -8,9 +8,10 @@ import ReactMarkdown from 'react-markdown';
 interface ExamplePreviewModalProps {
   example: ExampleDocument;
   onClose: () => void;
+  ctaHref?: string;
 }
 
-export function ExamplePreviewModal({ example, onClose }: ExamplePreviewModalProps) {
+export function ExamplePreviewModal({ example, onClose, ctaHref = '/auth' }: ExamplePreviewModalProps) {
   // Close on Escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -82,10 +83,10 @@ export function ExamplePreviewModal({ example, onClose }: ExamplePreviewModalPro
               This is an example. Get a strategic document for <strong>your</strong> specific challenge.
             </p>
             <a
-              href="/chat"
+              href={ctaHref}
               className="py-2 px-6 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm whitespace-nowrap"
             >
-              Try It Yourself
+              {ctaHref === '/auth' ? 'Start Free Trial' : 'Try It Yourself'}
             </a>
           </div>
         </div>
