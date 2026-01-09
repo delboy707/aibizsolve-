@@ -35,13 +35,29 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
 
   const hasAlchemy = alchemyContent.trim().length > 0;
 
+  // Get content based on active tab
+  const getCurrentContent = () => {
+    if (activeTab === 'strategic') {
+      return strategicContent;
+    } else {
+      // For alchemy tab, include section header + content
+      return `## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemyContent}`;
+    }
+  };
+
+  const getCurrentFilename = () => {
+    const baseFilename = document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    return activeTab === 'strategic' ? baseFilename : `${baseFilename}_alchemy`;
+  };
+
   // Download as markdown
   const downloadMarkdown = () => {
-    const blob = new Blob([document.content], { type: 'text/markdown' });
+    const content = getCurrentContent();
+    const blob = new Blob([content], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = window.document.createElement('a');
     a.href = url;
-    a.download = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+    a.download = `${getCurrentFilename()}.md`;
     window.document.body.appendChild(a);
     a.click();
     window.document.body.removeChild(a);
@@ -50,8 +66,9 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
 
   // Download as text
   const downloadText = () => {
+    const content = getCurrentContent();
     // Strip markdown formatting for plain text
-    const plainText = document.content
+    const plainText = content
       .replace(/^#{1,6}\s/gm, '') // Remove headers
       .replace(/\*\*/g, '') // Remove bold
       .replace(/\*/g, '') // Remove italics
@@ -61,7 +78,7 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
     const url = URL.createObjectURL(blob);
     const a = window.document.createElement('a');
     a.href = url;
-    a.download = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    a.download = `${getCurrentFilename()}.txt`;
     window.document.body.appendChild(a);
     a.click();
     window.document.body.removeChild(a);
@@ -70,8 +87,9 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
 
   // Copy to clipboard
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(document.content);
-    alert('Document copied to clipboard!');
+    const content = getCurrentContent();
+    navigator.clipboard.writeText(content);
+    alert(`${activeTab === 'strategic' ? 'Strategic document' : 'Alchemy section'} copied to clipboard!`);
   };
 
   const renderContent = (content: string, isAlchemy: boolean = false) => {
