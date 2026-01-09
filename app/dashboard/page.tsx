@@ -104,7 +104,7 @@ export default async function DashboardPage() {
                 <span className="text-3xl">4️⃣</span>
                 <h3 className="font-semibold">Review & Download</h3>
               </div>
-              <p className="text-sm text-primary-50">Get a comprehensive strategic plan with 30-60-90 day roadmap, risk mitigation, and counterintuitive options. Download as needed</p>
+              <p className="text-sm text-primary-50">Get a comprehensive strategic plan with 30-60-90 day roadmap, risk mitigation, and Alchemy insights (counterintuitive options for average+ subscribers). Download as needed</p>
             </div>
           </div>
         </div>
