@@ -164,11 +164,18 @@ export async function POST(req: NextRequest) {
       .replace('{workflows}', workflowsSummary)
       .replace('{conversation}', conversationSummary);
 
-    // CALL 1: Generate SCQA Document with streaming
+    // CALL 1: Generate SCQA Document with streaming and prompt caching
     console.log('Generating SCQA document...');
     const scqaStream = await anthropic().messages.stream({
       model: MODELS.OPUS,
       max_tokens: 4096,
+      system: [
+        {
+          type: 'text',
+          text: SCQA_PROMPT.split('{problem}')[0], // Cache the template part
+          cache_control: { type: 'ephemeral' }
+        }
+      ],
       messages: [{
         role: 'user',
         content: prompt,
@@ -198,6 +205,13 @@ export async function POST(req: NextRequest) {
       const alchemyStream = await anthropic().messages.stream({
         model: MODELS.OPUS,
         max_tokens: 2048,
+        system: [
+          {
+            type: 'text',
+            text: ALCHEMY_PROMPT.split('{problem}')[0], // Cache the Alchemy template
+            cache_control: { type: 'ephemeral' }
+          }
+        ],
         messages: [{
           role: 'user',
           content: alchemyPrompt,

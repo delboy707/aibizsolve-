@@ -91,11 +91,18 @@ Include both rational and behavioral questions when appropriate.${documentContex
       stepLabel = 'Analyzing';
     }
 
-    // Call Claude Opus 4.5 with streaming for highest quality response
+    // Call Claude Opus 4.5 with streaming and prompt caching
+    // Cache the system prompt and document context to reduce costs by 90%
     const stream = await anthropic().messages.stream({
       model: MODELS.OPUS,
       max_tokens: 2048,
-      system: systemPrompt,
+      system: [
+        {
+          type: 'text',
+          text: systemPrompt,
+          cache_control: { type: 'ephemeral' } // Cache system prompt
+        }
+      ],
       messages: conversationHistory as Array<{ role: 'user' | 'assistant'; content: string }>,
     });
 
