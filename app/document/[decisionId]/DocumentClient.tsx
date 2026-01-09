@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { SectionCopyButton } from '@/components/document/SectionCopyButton';
 
 interface DocumentClientProps {
   decisionId: string;
@@ -92,14 +93,63 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
     alert(`${activeTab === 'strategic' ? 'Strategic document' : 'Alchemy section'} copied to clipboard!`);
   };
 
-  const renderContent = (content: string, isAlchemy: boolean = false) => {
-    return content
-      .split('\n')
-      .map((line: string) => {
-        // Convert markdown headings
-        if (line.startsWith('## ')) {
-          return `<h2 class="text-2xl font-bold mt-8 mb-4 ${isAlchemy ? 'text-warning' : 'text-gray-900'}">${line.substring(3)}</h2>`;
+  // Parse content into sections with copy buttons
+  const parseSections = (content: string, isAlchemy: boolean = false) => {
+    type Section = { title: string; content: string[]; startIdx: number };
+
+    const lines = content.split('\n');
+    const sections: React.ReactElement[] = [];
+    let currentSection: Section | null = null;
+
+    const pushSection = (section: Section) => {
+      const sectionContent = section.content.join('\n');
+      const sectionWithHeader = `## ${section.title}\n${sectionContent}`;
+
+      sections.push(
+        <div key={section.startIdx} className="section-wrapper">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className={`text-2xl font-bold mt-8 ${isAlchemy ? 'text-warning' : 'text-gray-900'}`}>
+              {section.title}
+            </h2>
+            <SectionCopyButton
+              sectionTitle={section.title}
+              sectionContent={sectionWithHeader}
+            />
+          </div>
+          <div dangerouslySetInnerHTML={{ __html: renderLines(section.content, isAlchemy) }} />
+        </div>
+      );
+    };
+
+    lines.forEach((line, idx) => {
+      if (line.startsWith('## ')) {
+        // Save previous section
+        if (currentSection) {
+          pushSection(currentSection);
         }
+
+        // Start new section
+        currentSection = {
+          title: line.substring(3),
+          content: [],
+          startIdx: idx
+        };
+      } else if (currentSection) {
+        currentSection.content.push(line);
+      }
+    });
+
+    // Add last section
+    if (currentSection) {
+      pushSection(currentSection);
+    }
+
+    return sections;
+  };
+
+  const renderLines = (lines: string[], isAlchemy: boolean = false): string => {
+    return lines
+      .map((line: string) => {
         if (line.startsWith('### ')) {
           return `<h3 class="text-xl font-semibold mt-6 mb-3 ${isAlchemy ? 'text-warning' : 'text-gray-800'}">${line.substring(4)}</h3>`;
         }
@@ -263,12 +313,7 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
                 </div>
 
                 <div className="prose prose-slate max-w-none">
-                  <div
-                    className="whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{
-                      __html: renderContent(strategicContent, false),
-                    }}
-                  />
+                  {parseSections(strategicContent, false)}
                 </div>
               </div>
             ) : (
@@ -297,12 +342,7 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
                 </div>
 
                 <div className="prose prose-slate max-w-none">
-                  <div
-                    className="whitespace-pre-wrap"
-                    dangerouslySetInnerHTML={{
-                      __html: renderContent(alchemyContent, true),
-                    }}
-                  />
+                  {parseSections(alchemyContent, true)}
                 </div>
               </div>
             )}
