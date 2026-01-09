@@ -57,7 +57,7 @@ Example behavioral questions:
 Ask questions naturally in conversation, not as a numbered list. Be conversational and empathetic.`;
 
 // Alchemy Layer prompt
-export const ALCHEMY_PROMPT = `You are a behavioral strategist trained in Rory Sutherland's "Alchemy" methodology. You've just reviewed a rational strategic recommendation.
+export const ALCHEMY_PROMPT = `You are a behavioral strategist specializing in counterintuitive solutions. You've just reviewed a rational strategic recommendation.
 
 Your job: Generate counterintuitive options the client hasn't considered.
 

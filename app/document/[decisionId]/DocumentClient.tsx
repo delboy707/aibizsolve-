@@ -35,6 +35,45 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
 
   const hasAlchemy = alchemyContent.trim().length > 0;
 
+  // Download as markdown
+  const downloadMarkdown = () => {
+    const blob = new Blob([document.content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.md`;
+    window.document.body.appendChild(a);
+    a.click();
+    window.document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Download as text
+  const downloadText = () => {
+    // Strip markdown formatting for plain text
+    const plainText = document.content
+      .replace(/^#{1,6}\s/gm, '') // Remove headers
+      .replace(/\*\*/g, '') // Remove bold
+      .replace(/\*/g, '') // Remove italics
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove links, keep text
+
+    const blob = new Blob([plainText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = `${document.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.txt`;
+    window.document.body.appendChild(a);
+    a.click();
+    window.document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // Copy to clipboard
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(document.content);
+    alert('Document copied to clipboard!');
+  };
+
   const renderContent = (content: string, isAlchemy: boolean = false) => {
     return content
       .split('\n')
@@ -98,12 +137,50 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
         <div className="bg-white rounded-xl shadow-sm border border-gray-200">
           {/* Document Header */}
           <div className="p-8 border-b border-gray-200">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {document.title}
-            </h1>
-            <p className="text-sm text-gray-600">
-              Generated on {mounted ? createdDate : ''}
-            </p>
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  {document.title}
+                </h1>
+                <p className="text-sm text-gray-600">
+                  Generated on {mounted ? createdDate : ''}
+                </p>
+              </div>
+
+              {/* Download Actions */}
+              <div className="flex items-center gap-2 ml-4">
+                <button
+                  onClick={copyToClipboard}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  title="Copy to clipboard"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </button>
+                <button
+                  onClick={downloadText}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  title="Download as plain text"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  TXT
+                </button>
+                <button
+                  onClick={downloadMarkdown}
+                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
+                  title="Download as markdown"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Download MD
+                </button>
+              </div>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -187,8 +264,7 @@ export default function DocumentClient({ decisionId, document }: DocumentClientP
                   </div>
                   <p className="text-sm text-alchemy-text mb-3">
                     These behavioral insights challenge conventional thinking. Most business problems have a
-                    psychological dimension that rational analysis misses. Based on Rory Sutherland's "Alchemy"
-                    methodology, these options explore what others won't consider.
+                    psychological dimension that rational analysis misses. These counterintuitive options explore what others won't consider.
                   </p>
                   <div className="text-xs text-alchemy-text space-y-1">
                     <p><strong>The Four Lenses:</strong></p>

@@ -12,7 +12,7 @@ INPUT:
 - Matched Workflows: {workflows}
 - Conversation History: {conversation}
 
-Generate a McKinsey-style strategic document with the following 7 sections:
+Generate a top consultancy-style strategic document with the following 7 sections:
 
 ## 1. EXECUTIVE SUMMARY (SCQA)
 **Situation**: Current state facts (2-3 sentences)

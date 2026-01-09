@@ -82,28 +82,28 @@ export default async function DashboardPage() {
                 <span className="text-3xl">1️⃣</span>
                 <h3 className="font-semibold">Describe Your Problem</h3>
               </div>
-              <p className="text-sm text-primary-50">Tell us your business challenge and/or upload documents</p>
+              <p className="text-sm text-primary-50">Type your business challenge. After you send your first message, you can also upload supporting documents (PDF, DOCX, TXT, CSV)</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-3xl">2️⃣</span>
                 <h3 className="font-semibold">Answer Questions</h3>
               </div>
-              <p className="text-sm text-primary-50">Our AI Database will ask you 2-4 clarifying questions to understand context</p>
+              <p className="text-sm text-primary-50">Our AI will ask 2-4 clarifying questions to understand your context, goals, and constraints</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-3xl">3️⃣</span>
-                <h3 className="font-semibold">Generate Document</h3>
+                <h3 className="font-semibold">Generate Strategic Document</h3>
               </div>
-              <p className="text-sm text-primary-50">Get a strategic plan (takes ~2 minutes)</p>
+              <p className="text-sm text-primary-50">Click "Generate Strategic Document" button after answering questions. Takes ~2 minutes to create your custom analysis</p>
             </div>
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-3xl">4️⃣</span>
-                <h3 className="font-semibold">Review Insights</h3>
+                <h3 className="font-semibold">Review & Download</h3>
               </div>
-              <p className="text-sm text-primary-50">Strategic plan + counterintuitive options (Alchemy)</p>
+              <p className="text-sm text-primary-50">Get a comprehensive strategic plan with 30-60-90 day roadmap, risk mitigation, and counterintuitive options. Download as needed</p>
             </div>
           </div>
         </div>
