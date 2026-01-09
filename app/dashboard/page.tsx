@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import type { Decision } from '@/types';
+import { ExampleLibrary } from '@/components/examples/ExampleLibrary';
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -231,14 +232,20 @@ export default async function DashboardPage() {
               ))}
             </div>
           ) : (
-            <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
-              <p className="text-gray-600 mb-4">No decisions yet</p>
-              <Link
-                href="/chat"
-                className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
-              >
-                Create Your First Decision
-              </Link>
+            <div className="space-y-8">
+              {/* Empty State Message */}
+              <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
+                <p className="text-gray-600 mb-4">No decisions yet</p>
+                <Link
+                  href="/chat"
+                  className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                >
+                  Create Your First Decision
+                </Link>
+              </div>
+
+              {/* Example Library */}
+              <ExampleLibrary />
             </div>
           )}
         </div>

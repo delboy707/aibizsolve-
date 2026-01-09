@@ -79,7 +79,7 @@ export async function sendDocumentReadyEmail(
     </div>
 
     <p style="font-size: 14px; color: #6b7280; margin-top: 30px; padding-top: 30px; border-top: 1px solid #e5e7eb;">
-      This document was generated with Claude Opus 4.5, providing institutional-grade strategic analysis in minutes instead of weeks.
+      This document provides institutional-grade strategic analysis in minutes instead of weeks.
     </p>
   </div>
 
