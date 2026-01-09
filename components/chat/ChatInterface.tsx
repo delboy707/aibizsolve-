@@ -73,6 +73,12 @@ export default function ChatInterface({
 
       {/* Input Area */}
       <div className="border-t border-gray-200 bg-white p-4 shadow-sm space-y-3">
+        {!decisionId && (
+          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+            💡 Tip: You can upload documents (PDF, DOCX, TXT, CSV) after describing your problem
+          </div>
+        )}
+
         {decisionId && (
           <FileUpload
             decisionId={decisionId}
