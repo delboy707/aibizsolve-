@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
 import { ALCHEMY_PROMPT } from '@/lib/ai/prompts';
+import { sendDocumentReadyEmail } from '@/lib/email/client';
 
 // SCQA Document Generation Prompt
 const SCQA_PROMPT = `You are a top-tier strategic business consultant. Generate a comprehensive strategic document in SCQA format (Situation, Complication, Question, Answer).
@@ -255,6 +256,35 @@ export async function POST(req: NextRequest) {
         alchemy_generated: hasAlchemyAccess,
       })
       .eq('id', decisionId);
+
+    // Send email notification
+    try {
+      const documentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://qep-aisolve.app'}/document/${decisionId}`;
+
+      // Extract executive summary (first 300 chars of SCQA section)
+      const executiveSummaryMatch = scqaDocument.match(/## 1\. EXECUTIVE SUMMARY[\s\S]*?(?=## 2\.|$)/);
+      let executiveSummary = 'Your comprehensive strategic analysis is ready for review.';
+
+      if (executiveSummaryMatch) {
+        const summaryText = executiveSummaryMatch[0]
+          .replace(/## 1\. EXECUTIVE SUMMARY.*?\n/, '')
+          .replace(/\*\*/g, '')
+          .trim();
+        executiveSummary = summaryText.substring(0, 300) + (summaryText.length > 300 ? '...' : '');
+      }
+
+      await sendDocumentReadyEmail(user.email!, {
+        userName: user.email!.split('@')[0], // Use email prefix as name
+        problemTitle: decision.problem_statement?.substring(0, 100) || 'Your Business Challenge',
+        documentUrl,
+        executiveSummary,
+      });
+
+      console.log('Email sent successfully to:', user.email);
+    } catch (emailError) {
+      // Don't fail the request if email fails
+      console.error('Failed to send email notification:', emailError);
+    }
 
     return NextResponse.json({
       document: savedDocument,
