@@ -1,8 +1,84 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
-import { ALCHEMY_PROMPT } from '@/lib/ai/prompts';
+import { ALCHEMY_PROMPT, CLASSIFICATION_PROMPT } from '@/lib/ai/prompts';
 import { sendDocumentReadyEmail } from '@/lib/email/client';
+import { generateEmbedding } from '@/lib/ai/openai';
+
+// Classification helper function
+async function classifyProblem(problem: string): Promise<{
+  symptoms: string[];
+  challenges: string[];
+  primary_domain: string;
+  secondary_domains: string[];
+  intent: string;
+  confidence: number;
+}> {
+  const response = await anthropic().messages.create({
+    model: MODELS.HAIKU,
+    max_tokens: 1024,
+    messages: [
+      {
+        role: 'user',
+        content: `${CLASSIFICATION_PROMPT}\n\nProblem to classify:\n${problem}`,
+      },
+    ],
+  });
+
+  const content = response.content[0];
+  if (content.type !== 'text') {
+    throw new Error('Unexpected response type from Claude');
+  }
+
+  // Parse JSON response, handling potential markdown code blocks
+  let jsonText = content.text.trim();
+  if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+  }
+
+  return JSON.parse(jsonText);
+}
+
+// Vector search helper function
+async function searchWorkflows(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  problem: string,
+  domains?: string[],
+  limit: number = 4
+): Promise<Array<{
+  name: string;
+  domain: string;
+  task_summary: string;
+  full_prompt: string;
+  key_questions: string[];
+  similarity: number;
+}>> {
+  try {
+    // Generate embedding for the problem
+    const problemEmbedding = await generateEmbedding(problem);
+
+    // Use the match_workflows function for vector similarity search
+    const { data: workflows, error: searchError } = await supabase.rpc(
+      'match_workflows',
+      {
+        query_embedding: JSON.stringify(problemEmbedding),
+        match_threshold: 0.65, // Slightly lower threshold for better recall
+        match_count: limit,
+        filter_domains: domains && domains.length > 0 ? domains : null,
+      }
+    );
+
+    if (searchError) {
+      console.error('Workflow search error:', searchError);
+      return [];
+    }
+
+    return workflows || [];
+  } catch (error) {
+    console.error('Error in workflow search:', error);
+    return [];
+  }
+}
 
 // SCQA Document Generation Prompt
 const SCQA_PROMPT = `You are a top-tier strategic business consultant. Generate a comprehensive strategic document in SCQA format (Situation, Complication, Question, Answer).
@@ -135,27 +211,85 @@ export async function POST(req: NextRequest) {
       .eq('decision_id', decisionId)
       .order('created_at', { ascending: true });
 
-    // Fetch matched workflows
-    const { data: workflows } = await supabase
-      .from('workflows')
-      .select('name, task_summary, full_prompt, key_questions')
-      .in('domain', decision.classified_domains || [])
-      .limit(3);
+    // PRIORITY 1.2: Run classification if not already done
+    let classification = {
+      symptoms: decision.classified_symptoms || [],
+      challenges: decision.classified_challenges || [],
+      primary_domain: decision.classified_domains?.[0] || '',
+      secondary_domains: decision.classified_domains?.slice(1) || [],
+      intent: decision.classified_intent || 'explore',
+      confidence: decision.classification_confidence || 0,
+    };
+
+    // Build full problem context from conversation
+    const conversationContext = messages
+      ?.map((m) => `${m.role}: ${m.content}`)
+      .join('\n\n') || '';
+    const fullProblemContext = `${decision.problem_statement || ''}\n\nConversation:\n${conversationContext}`;
+
+    // Run classification if not already classified
+    if (!decision.classified_domains || decision.classified_domains.length === 0) {
+      console.log('Running classification...');
+      try {
+        classification = await classifyProblem(fullProblemContext);
+        console.log('Classification result:', classification);
+
+        // Update decision with classification
+        await supabase
+          .from('decisions')
+          .update({
+            classified_symptoms: classification.symptoms,
+            classified_challenges: classification.challenges,
+            classified_domains: [
+              classification.primary_domain,
+              ...(classification.secondary_domains || []),
+            ],
+            classified_intent: classification.intent,
+            classification_confidence: classification.confidence,
+          })
+          .eq('id', decisionId);
+      } catch (classifyError) {
+        console.error('Classification error (continuing with defaults):', classifyError);
+      }
+    }
+
+    // PRIORITY 1.3: Use vector search instead of simple domain filter
+    console.log('Searching for matching workflows...');
+    const allDomains = [
+      classification.primary_domain,
+      ...(classification.secondary_domains || []),
+    ].filter(Boolean);
+
+    const workflows = await searchWorkflows(
+      supabase,
+      fullProblemContext,
+      allDomains.length > 0 ? allDomains : undefined,
+      4
+    );
+    console.log(`Found ${workflows.length} matching workflows`);
 
     // Build context for document generation
     const conversationSummary = messages
       ?.map((m) => `${m.role}: ${m.content}`)
       .join('\n\n') || '';
 
-    const workflowsSummary = workflows
-      ?.map((w) => `${w.name}: ${w.task_summary}`)
-      .join('\n') || 'No specific workflows matched';
+    // Build rich workflow context with prompts and key questions
+    const workflowsSummary = workflows.length > 0
+      ? workflows.map((w, i) =>
+          `### Workflow ${i + 1}: ${w.name} (${w.domain})\n` +
+          `**Summary**: ${w.task_summary}\n` +
+          `**Key Questions**: ${(w.key_questions || []).slice(0, 3).join('; ')}\n` +
+          `**Similarity**: ${(w.similarity * 100).toFixed(0)}%`
+        ).join('\n\n')
+      : 'No specific workflows matched - using general strategic analysis';
 
+    // Use actual classification data
     const classificationSummary = JSON.stringify({
-      symptoms: decision.classified_symptoms,
-      challenges: decision.classified_challenges,
-      domains: decision.classified_domains,
-      intent: decision.classified_intent,
+      symptoms: classification.symptoms,
+      challenges: classification.challenges,
+      domains: [classification.primary_domain, ...classification.secondary_domains].filter(Boolean),
+      intent: classification.intent,
+      confidence: classification.confidence,
     }, null, 2);
 
     const prompt = SCQA_PROMPT
@@ -196,11 +330,13 @@ export async function POST(req: NextRequest) {
     if (hasAlchemyAccess) {
       console.log('Generating Alchemy Layer...');
 
+      // PRIORITY 1.4: Pass actual classification to Alchemy prompt
+      const alchemyDomains = [classification.primary_domain, ...classification.secondary_domains].filter(Boolean);
       const alchemyPrompt = ALCHEMY_PROMPT
-        .replace('{problem}', decision.problem_statement || '')
-        .replace('{domains}', (decision.classified_domains || []).join(', '))
-        .replace('{intent}', decision.classified_intent || 'explore')
-        .replace('{challenges}', (decision.classified_challenges || []).join(', '));
+        .replace('{problem}', fullProblemContext)
+        .replace('{domains}', alchemyDomains.length > 0 ? alchemyDomains.join(', ') : 'General Business Strategy')
+        .replace('{intent}', classification.intent || 'explore')
+        .replace('{challenges}', classification.challenges.length > 0 ? classification.challenges.join(', ') : 'Strategic challenges identified in conversation');
 
       const alchemyStream = await anthropic().messages.stream({
         model: MODELS.OPUS,
@@ -262,12 +398,17 @@ export async function POST(req: NextRequest) {
       throw saveError;
     }
 
-    // Update decision status
+    // Update decision status and store matched workflows
     await supabase
       .from('decisions')
       .update({
         status: 'complete',
         alchemy_generated: hasAlchemyAccess,
+        matched_workflows: workflows.map(w => ({
+          name: w.name,
+          domain: w.domain,
+          similarity: w.similarity,
+        })),
       })
       .eq('id', decisionId);
 
