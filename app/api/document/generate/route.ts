@@ -223,7 +223,7 @@ export async function POST(req: NextRequest) {
 
     // Build full problem context from conversation
     const conversationContext = messages
-      ?.map((m) => `${m.role}: ${m.content}`)
+      ?.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
       .join('\n\n') || '';
     const fullProblemContext = `${decision.problem_statement || ''}\n\nConversation:\n${conversationContext}`;
 
@@ -270,7 +270,7 @@ export async function POST(req: NextRequest) {
 
     // Build context for document generation
     const conversationSummary = messages
-      ?.map((m) => `${m.role}: ${m.content}`)
+      ?.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
       .join('\n\n') || '';
 
     // Build rich workflow context with prompts and key questions

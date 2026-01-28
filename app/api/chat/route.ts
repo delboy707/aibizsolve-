@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
     let documentContext = '';
     if (uploadedDocs && uploadedDocs.length > 0) {
       documentContext = '\n\n**UPLOADED DOCUMENTS CONTEXT:**\n\n';
-      uploadedDocs.forEach((doc, index) => {
+      uploadedDocs.forEach((doc: { file_name: string; extracted_text: string }, index: number) => {
         documentContext += `Document ${index + 1}: ${doc.file_name}\n`;
         documentContext += `${doc.extracted_text}\n\n---\n\n`;
       });
@@ -218,7 +218,7 @@ Use this classification to ask targeted questions relevant to the ${classificati
     }
 
     // Build conversation context for Claude
-    const conversationHistory = messages?.map((msg) => ({
+    const conversationHistory = messages?.map((msg: { role: string; content: string }) => ({
       role: msg.role === 'user' ? 'user' : 'assistant',
       content: msg.content,
     })) || [];

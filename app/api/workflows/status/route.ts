@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
 
     let domainCounts: Record<string, number> = {};
     if (!domainError && domainData) {
-      domainCounts = domainData.reduce((acc, row) => {
+      domainCounts = domainData.reduce((acc: Record<string, number>, row: { domain: string }) => {
         acc[row.domain] = (acc[row.domain] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
