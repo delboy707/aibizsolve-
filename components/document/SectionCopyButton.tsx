@@ -23,7 +23,7 @@ export function SectionCopyButton({ sectionTitle, sectionContent }: SectionCopyB
   return (
     <button
       onClick={handleCopy}
-      className="ml-3 px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors inline-flex items-center gap-1.5"
+      className="ml-3 px-3 py-1 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 rounded-md transition-colors inline-flex items-center gap-1.5"
       title={`Copy ${sectionTitle}`}
     >
       {copied ? (

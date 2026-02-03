@@ -162,7 +162,7 @@ export function DecisionsList({ decisions }: DecisionsListProps) {
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none focus:text-gray-600"
               aria-label="Clear search"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -255,14 +255,14 @@ export function DecisionsList({ decisions }: DecisionsListProps) {
               <div className="flex gap-2">
                 <Link
                   href={`/chat/${decision.id}`}
-                  className="flex-1 text-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+                  className="flex-1 text-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors text-sm font-medium"
                 >
                   {decision.status === 'complete' ? 'Continue Chat' : 'Continue'}
                 </Link>
                 {decision.status === 'complete' && (
                   <Link
                     href={`/document/${decision.id}`}
-                    className="flex-1 text-center px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white transition-colors text-sm font-medium"
+                    className="flex-1 text-center px-4 py-2 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors text-sm font-medium"
                   >
                     📄 View Document
                   </Link>
@@ -272,7 +272,7 @@ export function DecisionsList({ decisions }: DecisionsListProps) {
                 <div className="relative" ref={showMenu === decision.id ? menuRef : null}>
                   <button
                     onClick={() => setShowMenu(showMenu === decision.id ? null : decision.id)}
-                    className="px-3 py-2 border-2 border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-3 py-2 border-2 border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     disabled={processingId === decision.id}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -53,13 +53,13 @@ export default function BeatTheAverage({
           <div className="flex gap-2">
             <button
               onClick={() => onUpgrade(averageAmount)}
-              className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-medium text-sm"
+              className="flex-1 px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 transition-colors font-medium text-sm"
             >
               Upgrade to ${averageAmount}/month
             </button>
             <button
               onClick={() => onUpgrade(Math.round(averageAmount * 1.2))}
-              className="flex-1 px-4 py-2 bg-navy-primary text-white rounded-lg hover:bg-navy-light transition-colors font-medium text-sm"
+              className="flex-1 px-4 py-2 bg-navy-primary text-white rounded-lg hover:bg-navy-light focus:outline-none focus:ring-2 focus:ring-navy-primary focus:ring-offset-2 transition-colors font-medium text-sm"
             >
               I'll pay more: ${Math.round(averageAmount * 1.2)}
             </button>

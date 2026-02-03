@@ -55,7 +55,7 @@ export default function AuthPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center px-4">
       <div className="max-w-md w-full">
         <div className="text-center mb-8">
-          <Link href="/" className="text-2xl font-bold text-navy-primary">
+          <Link href="/" className="text-2xl font-bold text-navy-primary focus:outline-none focus:underline">
             QEP AISolve
           </Link>
           <h1 className="text-2xl font-bold text-navy-dark mt-6">
@@ -110,7 +110,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-navy-primary text-white py-2 rounded-md hover:bg-navy-light disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-navy-primary text-white py-2 rounded-md hover:bg-navy-light focus:outline-none focus:ring-2 focus:ring-navy-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
             </button>
@@ -119,7 +119,7 @@ export default function AuthPage() {
           <div className="mt-6 text-center">
             <button
               onClick={() => setIsSignUp(!isSignUp)}
-              className="text-navy-primary hover:text-navy-light text-sm"
+              className="text-navy-primary hover:text-navy-light focus:outline-none focus:underline text-sm"
             >
               {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
             </button>
