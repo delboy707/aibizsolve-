@@ -1,44 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
-import { ALCHEMY_PROMPT, CLASSIFICATION_PROMPT } from '@/lib/ai/prompts';
+import { ALCHEMY_PROMPT } from '@/lib/ai/prompts';
 import { sendDocumentReadyEmail } from '@/lib/email/client';
 import { generateEmbedding } from '@/lib/ai/openai';
 import { analyzeCrossDomainSynergy, Domain } from '@/lib/ai/synergy';
-
-// Classification helper function
-async function classifyProblem(problem: string): Promise<{
-  symptoms: string[];
-  challenges: string[];
-  primary_domain: string;
-  secondary_domains: string[];
-  intent: string;
-  confidence: number;
-}> {
-  const response = await anthropic().messages.create({
-    model: MODELS.HAIKU,
-    max_tokens: 1024,
-    messages: [
-      {
-        role: 'user',
-        content: `${CLASSIFICATION_PROMPT}\n\nProblem to classify:\n${problem}`,
-      },
-    ],
-  });
-
-  const content = response.content[0];
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response type from Claude');
-  }
-
-  // Parse JSON response, handling potential markdown code blocks
-  let jsonText = content.text.trim();
-  if (jsonText.startsWith('```')) {
-    jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
-  }
-
-  return JSON.parse(jsonText);
-}
+import { classifyProblem } from '@/lib/ai/classify';
 
 // Vector search helper function
 async function searchWorkflows(
@@ -372,6 +339,78 @@ export async function POST(req: NextRequest) {
     const [scqaDocument, alchemySection] = await Promise.all([scqaPromise, alchemyPromise]);
     console.log('SCQA and Alchemy generation complete');
 
+    // Parse individual SCQA sections for database storage
+    const parseSCQA = (doc: string) => {
+      const sections: { situation?: string; complication?: string; question?: string; answer?: string } = {};
+
+      // Extract Executive Summary section
+      const execSummaryMatch = doc.match(/## 1\. EXECUTIVE SUMMARY[\s\S]*?(?=## 2\.|$)/i);
+      if (execSummaryMatch) {
+        const execContent = execSummaryMatch[0];
+
+        // Extract Situation
+        const situationMatch = execContent.match(/\*\*Situation\*\*:?\s*([\s\S]*?)(?=\*\*Complication\*\*|$)/i);
+        if (situationMatch) sections.situation = situationMatch[1].trim();
+
+        // Extract Complication
+        const complicationMatch = execContent.match(/\*\*Complication\*\*:?\s*([\s\S]*?)(?=\*\*Question\*\*|$)/i);
+        if (complicationMatch) sections.complication = complicationMatch[1].trim();
+
+        // Extract Question
+        const questionMatch = execContent.match(/\*\*Question\*\*:?\s*([\s\S]*?)(?=\*\*Answer\*\*|$)/i);
+        if (questionMatch) sections.question = questionMatch[1].trim();
+
+        // Extract Answer
+        const answerMatch = execContent.match(/\*\*Answer\*\*:?\s*([\s\S]*?)(?=##|$)/i);
+        if (answerMatch) sections.answer = answerMatch[1].trim();
+      }
+
+      return sections;
+    };
+
+    // Parse roadmap sections
+    const parseRoadmap = (doc: string) => {
+      const roadmap: { days_30?: string[]; days_60?: string[]; days_90?: string[] } = {};
+
+      // Extract Implementation Roadmap section
+      const roadmapMatch = doc.match(/## 6\. IMPLEMENTATION ROADMAP[\s\S]*?(?=## 7\.|$)/i);
+      if (roadmapMatch) {
+        const roadmapContent = roadmapMatch[0];
+
+        // Extract 1-30 days
+        const days30Match = roadmapContent.match(/\*\*Days 1-30[\s\S]*?(?=\*\*Days 31-60|$)/i);
+        if (days30Match) {
+          roadmap.days_30 = days30Match[0]
+            .split('\n')
+            .filter(line => line.trim().startsWith('-'))
+            .map(line => line.replace(/^-\s*/, '').trim());
+        }
+
+        // Extract 31-60 days
+        const days60Match = roadmapContent.match(/\*\*Days 31-60[\s\S]*?(?=\*\*Days 61-90|$)/i);
+        if (days60Match) {
+          roadmap.days_60 = days60Match[0]
+            .split('\n')
+            .filter(line => line.trim().startsWith('-'))
+            .map(line => line.replace(/^-\s*/, '').trim());
+        }
+
+        // Extract 61-90 days
+        const days90Match = roadmapContent.match(/\*\*Days 61-90[\s\S]*?(?=##|$)/i);
+        if (days90Match) {
+          roadmap.days_90 = days90Match[0]
+            .split('\n')
+            .filter(line => line.trim().startsWith('-'))
+            .map(line => line.replace(/^-\s*/, '').trim());
+        }
+      }
+
+      return roadmap;
+    };
+
+    const scqaSections = parseSCQA(scqaDocument);
+    const roadmapSections = parseRoadmap(scqaDocument);
+
     // Merge results
     let fullDocument = scqaDocument;
 
@@ -395,7 +434,7 @@ export async function POST(req: NextRequest) {
       fullDocument = `${scqaDocument}\n\n---\n\n${alchemyTeaser}`;
     }
 
-    // Save to database
+    // Save to database with individual SCQA fields
     const { data: savedDocument, error: saveError } = await supabase
       .from('documents')
       .insert({
@@ -403,9 +442,19 @@ export async function POST(req: NextRequest) {
         title: `Strategic Analysis: ${decision.problem_statement?.substring(0, 100)}`,
         content: fullDocument,
         format: 'markdown',
-        alchemy_content: {
+        // Individual SCQA fields
+        scqa_situation: scqaSections.situation || null,
+        scqa_complication: scqaSections.complication || null,
+        scqa_question: scqaSections.question || null,
+        scqa_answer: scqaSections.answer || null,
+        // Roadmap fields
+        roadmap_30: roadmapSections.days_30 || null,
+        roadmap_60: roadmapSections.days_60 || null,
+        roadmap_90: roadmapSections.days_90 || null,
+        // Alchemy content
+        alchemy_content: alchemySection ? {
           raw: alchemySection,
-        },
+        } : null,
       })
       .select()
       .single();
