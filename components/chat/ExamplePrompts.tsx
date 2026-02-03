@@ -89,7 +89,7 @@ export default function ExamplePrompts({ onExampleClick }: ExamplePromptsProps) 
                 <button
                   key={index}
                   onClick={() => onExampleClick(prompt)}
-                  className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 hover:border-primary-300 border border-gray-200 rounded-lg text-sm text-gray-700 transition-all"
+                  className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 hover:border-primary-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 border border-gray-200 rounded-lg text-sm text-gray-700 transition-all"
                 >
                   {prompt}
                 </button>

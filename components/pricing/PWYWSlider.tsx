@@ -45,7 +45,7 @@ export default function PWYWSlider({
                 value={amount}
                 onChange={handleInputChange}
                 onBlur={() => setCustomInput(false)}
-                className="w-32 text-center border-b-2 border-navy-primary focus:outline-none"
+                className="w-32 text-center border-b-2 border-navy-primary focus:outline-none focus:border-navy-light"
                 autoFocus
                 min={minAmount}
                 max={maxAmount}
@@ -53,7 +53,7 @@ export default function PWYWSlider({
             ) : (
               <button
                 onClick={() => setCustomInput(true)}
-                className="hover:text-navy-primary transition-colors"
+                className="hover:text-navy-primary focus:outline-none focus:text-navy-primary transition-colors"
               >
                 {amount}
               </button>
@@ -76,7 +76,7 @@ export default function PWYWSlider({
           onChange={handleSliderChange}
           className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer slider-thumb"
           style={{
-            background: `linear-gradient(to right, #1A365D 0%, #1A365D ${((amount - minAmount) / (maxAmount - minAmount)) * 100}%, #E2E8F0 ${((amount - minAmount) / (maxAmount - minAmount)) * 100}%, #E2E8F0 100%)`
+            background: `linear-gradient(to right, var(--color-navy-dark) 0%, var(--color-navy-dark) ${((amount - minAmount) / (maxAmount - minAmount)) * 100}%, var(--color-slate-200) ${((amount - minAmount) / (maxAmount - minAmount)) * 100}%, var(--color-slate-200) 100%)`
           }}
         />
         <div className="flex justify-between text-xs text-slate-500 mt-2">
@@ -94,7 +94,7 @@ export default function PWYWSlider({
               setAmount(quickAmount);
               onAmountChange(quickAmount);
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-navy-primary focus:ring-offset-2 ${
               amount === quickAmount
                 ? 'bg-navy-primary text-white'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200'

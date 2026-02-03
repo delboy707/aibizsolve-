@@ -43,7 +43,7 @@ export default function SegmentAnchors({
           <button
             key={segment}
             onClick={() => onSegmentSelect?.(segment)}
-            className={`p-4 rounded-lg border-2 transition-all text-left ${
+            className={`p-4 rounded-lg border-2 transition-all text-left focus:outline-none focus:ring-2 focus:ring-navy-primary focus:ring-offset-2 ${
               selectedSegment === segment
                 ? 'border-navy-primary bg-navy-primary/5'
                 : 'border-slate-200 hover:border-slate-300'
