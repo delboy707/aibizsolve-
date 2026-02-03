@@ -341,6 +341,199 @@ export const exampleDocuments: ExampleDocument[] = [
 
 [Full document would continue with all 7 sections as shown in first example...]`
   },
+
+  {
+    id: 'example-4',
+    title: 'Rebuilding Brand Positioning After Market Shift',
+    problem: 'Our B2B software brand was premium/enterprise-focused, but the market commoditized. We need to reposition without alienating existing customers or racing to the bottom on price.',
+    domain: 'Marketing',
+    tags: ['Brand', 'Positioning', 'B2B Marketing'],
+    executiveSummary: `**Situation**: Enterprise software company with 15-year history and $20M revenue. Known for high-touch, premium service. Average deal size $150K. Marketing spend primarily focused on events, analysts, and enterprise sales enablement.
+
+**Complication**: New cloud-native competitors offer 80% of functionality at 30% of price. Win rates dropped from 45% to 28% in 18 months. Brand perception is "expensive and slow" among new buyers while existing customers value stability.
+
+**Question**: How do we reposition the brand to compete in the new market reality while protecting the premium customer base that drives 70% of revenue?
+
+**Answer**: Execute a dual-brand strategy: (1) Maintain enterprise brand for existing customers with enhanced success programs, (2) Launch a "Cloud Edition" sub-brand with modern positioning, self-serve pricing, and digital-first marketing. Keep products on shared platform for efficiency.`,
+    fullDocument: `# Strategic Analysis: Rebuilding Brand Positioning After Market Shift
+
+## 1. EXECUTIVE SUMMARY (SCQA)
+
+**Situation**: Enterprise software company with 15-year history and $20M revenue. Known for high-touch, premium service. Average deal size $150K. Marketing spend primarily focused on events, analysts, and enterprise sales enablement.
+
+**Complication**: New cloud-native competitors offer 80% of functionality at 30% of price. Win rates dropped from 45% to 28% in 18 months. Brand perception is "expensive and slow" among new buyers while existing customers value stability.
+
+**Question**: How do we reposition the brand to compete in the new market reality while protecting the premium customer base that drives 70% of revenue?
+
+**Answer**: Execute a dual-brand strategy: (1) Maintain enterprise brand for existing customers with enhanced success programs, (2) Launch a "Cloud Edition" sub-brand with modern positioning, self-serve pricing, and digital-first marketing. Keep products on shared platform for efficiency.
+
+## 2. SITUATION ANALYSIS
+
+### Market Context
+- Enterprise software market undergoing cloud transformation
+- Buyer expectations shifted toward self-serve evaluation
+- Procurement cycles shortened from 12 months to 3-6 months
+- Digital-native competitors capturing 60% of new market entrants
+
+### Current Brand Position
+- **Perception**: Reliable, enterprise-grade, expensive, complex
+- **Strengths**: 15 years of case studies, analyst recognition, proven at scale
+- **Weaknesses**: Slow to innovate perception, no self-serve option, pricing opaque
+- **Market Share**: Declining 5% annually in new business
+
+### Competitive Analysis
+- 3 cloud-native competitors growing 50%+ YoY
+- Differentiation increasingly on UX and time-to-value, not features
+- Pricing transparency becoming table stakes
+
+## 3. PROBLEM DIAGNOSIS
+
+### Root Causes
+1. **Brand perception lag**: Market moved faster than brand evolution
+2. **Pricing architecture**: Cannot compete at entry-level without cannibalization
+3. **Go-to-market model**: Designed for 12-month cycles, market wants 30-day trials
+4. **Content gap**: No bottom-of-funnel content for self-serve buyers
+
+### Key Insights
+- Existing enterprise customers have 95% retention and love the product
+- New buyers never see product before deciding we're "too expensive"
+- 40% of lost deals cite "perceived complexity" as reason
+
+## 4. STRATEGIC OPTIONS
+
+### Option A: Aggressive Price Cut
+**Description**: Cut prices 40% across the board to match competitors
+
+**Pros**:
+- Immediately competitive on price
+- Simple to communicate
+- No product changes needed
+
+**Cons**:
+- $8M annual revenue loss from existing customers
+- Damages premium brand perception permanently
+- Race to the bottom with better-funded competitors
+- Doesn't address perception of complexity
+
+**Resources**: Revenue sacrifice, minimal investment
+
+### Option B: Dual-Brand Architecture
+**Description**: Launch separate brand/product tier for mid-market while maintaining enterprise positioning
+
+**Pros**:
+- Protects premium pricing for enterprise
+- Creates clear market segments
+- Tests new positioning without risk
+- Allows modern marketing approaches
+
+**Cons**:
+- Brand complexity to manage
+- Engineering effort for product packaging
+- Sales compensation complexity
+- 6-month implementation time
+
+**Resources**: $500K branding, $200K product packaging, 2 marketing hires
+
+### Option C: Product-Led Growth Pivot
+**Description**: Rebuild entire go-to-market around self-serve freemium model
+
+**Pros**:
+- Matches market direction
+- Builds viral loops
+- Lower CAC long-term
+- Attracts modern buyer
+
+**Cons**:
+- 18-24 month transformation
+- High risk of execution failure
+- May alienate enterprise customers
+- Significant product investment
+
+**Resources**: $2M+ over 18 months, major organizational change
+
+### Comparison & Recommendation
+
+| Metric | Option A | Option B | Option C |
+|--------|----------|----------|----------|
+| Revenue Risk | $8M loss | Protected | Unknown |
+| Time to Market | Immediate | 6 months | 18+ months |
+| Investment | Minimal | $700K | $2M+ |
+| Brand Protection | Low | High | Medium |
+| Competitive Response | Weak | Strong | Strong |
+
+**Recommendation**: **Option B (Dual-Brand)** balances competitive response with revenue protection. Execute in 2 phases: (1) Quick-launch "Cloud Edition" with existing product, new positioning; (2) Evolve product over 12 months based on market feedback.
+
+## 5. RECOMMENDATION
+
+**Primary Strategy**: Dual-Brand Architecture with Cloud Edition Launch
+
+**Rationale**:
+- Protects $14M enterprise revenue base
+- Creates clean slate for modern positioning
+- Tests market without betting the company
+- Allows iterative learning and adjustment
+
+**Expected Outcomes**:
+- Maintain 95% enterprise retention ($14M protected)
+- Win 40 new mid-market deals at $30K ACV ($1.2M new revenue)
+- Improve overall win rate from 28% to 35%
+- Build foundation for future product-led growth
+
+**Success Metrics**:
+- Cloud Edition trial-to-paid conversion rate >5%
+- Enterprise NPS stable at 60+
+- Overall win rate improvement
+- Brand perception shift in surveys
+
+## 6. IMPLEMENTATION ROADMAP
+
+### Days 1-30 (Foundation)
+- Name and brand development for Cloud Edition
+- Pricing architecture for new tier ($2K-50K range)
+- Landing page and trial infrastructure
+- Sales team briefing and compensation adjustment
+
+### Days 31-60 (Build Momentum)
+- Cloud Edition launch to waitlist
+- Digital marketing campaigns (paid + content)
+- Self-serve demo environment
+- Customer success playbook for new tier
+
+### Days 61-90 (Scale & Optimize)
+- Full market launch
+- Analyst briefings on new positioning
+- Enterprise customer communication program
+- Pipeline and conversion optimization
+
+## 7. RISK MITIGATION
+
+### Risk 1: Enterprise Customer Confusion
+**Probability**: Medium | **Impact**: High
+
+**Mitigation**:
+- Proactive communication before launch
+- Clear differentiation in naming and positioning
+- Dedicated enterprise success managers
+- Premium-only features and SLAs
+
+### Risk 2: Internal Sales Conflict
+**Probability**: High | **Impact**: Medium
+
+**Mitigation**:
+- Clear compensation structure with no overlap
+- Separate teams or deal routing rules
+- Leadership alignment before launch
+- Regular cross-team communication
+
+### Risk 3: Cloud Edition Cannibalizes Enterprise
+**Probability**: Low | **Impact**: High
+
+**Mitigation**:
+- Feature differentiation (compliance, SSO, support SLAs)
+- Pricing floor that maintains premium perception
+- Enterprise-only customer success programs
+- Monitor deal patterns closely`
+  },
 ];
 
 // Helper function to get example by ID
