@@ -323,10 +323,11 @@ export async function POST(req: NextRequest) {
     console.log('Generating SCQA document' + (hasAlchemyAccess ? ' and Alchemy Layer in parallel...' : '...'));
 
     // Helper to collect streamed response
-    async function collectStream(stream: AsyncIterable<{ type: string; delta?: { type: string; text?: string } }>): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async function collectStream(stream: AsyncIterable<any>): Promise<string> {
       let result = '';
       for await (const chunk of stream) {
-        if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta' && chunk.delta.text) {
+        if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta' && chunk.delta?.text) {
           result += chunk.delta.text;
         }
       }
