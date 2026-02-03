@@ -4,6 +4,7 @@ import { anthropic, MODELS } from '@/lib/ai/anthropic';
 import { ALCHEMY_PROMPT, CLASSIFICATION_PROMPT } from '@/lib/ai/prompts';
 import { sendDocumentReadyEmail } from '@/lib/email/client';
 import { generateEmbedding } from '@/lib/ai/openai';
+import { analyzeCrossDomainSynergy, Domain } from '@/lib/ai/synergy';
 
 // Classification helper function
 async function classifyProblem(problem: string): Promise<{
@@ -253,13 +254,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // PRIORITY 1.3: Use vector search instead of simple domain filter
-    console.log('Searching for matching workflows...');
-    const allDomains = [
-      classification.primary_domain,
-      ...(classification.secondary_domains || []),
-    ].filter(Boolean);
+    // PRIORITY 1.3: Use vector search with cross-domain synergy detection
+    console.log('Analyzing cross-domain synergy...');
+    const primaryDomain = (classification.primary_domain || 'strategy') as Domain;
+    const synergyAnalysis = analyzeCrossDomainSynergy(primaryDomain, fullProblemContext);
+    console.log('Synergy analysis:', {
+      primary: synergyAnalysis.primaryDomain,
+      allDomains: synergyAnalysis.allDomains,
+      matchedPattern: synergyAnalysis.matchedPattern?.name || 'none',
+    });
 
+    // Use synergy-enhanced domains for workflow search
+    const allDomains = synergyAnalysis.allDomains;
+
+    console.log('Searching for matching workflows...');
     const workflows = await searchWorkflows(
       supabase,
       fullProblemContext,
@@ -283,13 +291,17 @@ export async function POST(req: NextRequest) {
         ).join('\n\n')
       : 'No specific workflows matched - using general strategic analysis';
 
-    // Use actual classification data
+    // Use actual classification data with synergy insights
     const classificationSummary = JSON.stringify({
       symptoms: classification.symptoms,
       challenges: classification.challenges,
-      domains: [classification.primary_domain, ...classification.secondary_domains].filter(Boolean),
+      domains: synergyAnalysis.allDomains,
       intent: classification.intent,
       confidence: classification.confidence,
+      synergy: {
+        pattern: synergyAnalysis.matchedPattern?.name || null,
+        recommendation: synergyAnalysis.recommendation,
+      },
     }, null, 2);
 
     const prompt = SCQA_PROMPT
@@ -298,69 +310,74 @@ export async function POST(req: NextRequest) {
       .replace('{workflows}', workflowsSummary)
       .replace('{conversation}', conversationSummary);
 
-    // CALL 1: Generate SCQA Document with streaming and prompt caching
-    console.log('Generating SCQA document...');
-    const scqaStream = await anthropic().messages.stream({
-      model: MODELS.OPUS,
-      max_tokens: 4096,
-      system: [
-        {
-          type: 'text',
-          text: SCQA_PROMPT.split('{problem}')[0], // Cache the template part
-          cache_control: { type: 'ephemeral' }
-        }
-      ],
-      messages: [{
-        role: 'user',
-        content: prompt,
-      }],
-    });
+    // Prepare Alchemy prompt if user has access (needed for parallel execution)
+    const alchemyDomains = [classification.primary_domain, ...classification.secondary_domains].filter(Boolean);
+    const alchemyPrompt = hasAlchemyAccess ? ALCHEMY_PROMPT
+      .replace('{problem}', fullProblemContext)
+      .replace('{domains}', alchemyDomains.length > 0 ? alchemyDomains.join(', ') : 'General Business Strategy')
+      .replace('{intent}', classification.intent || 'explore')
+      .replace('{challenges}', classification.challenges.length > 0 ? classification.challenges.join(', ') : 'Strategic challenges identified in conversation')
+      : '';
 
-    let scqaDocument = '';
-    for await (const chunk of scqaStream) {
-      if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-        scqaDocument += chunk.delta.text;
+    // PARALLEL EXECUTION: Generate SCQA and Alchemy simultaneously
+    console.log('Generating SCQA document' + (hasAlchemyAccess ? ' and Alchemy Layer in parallel...' : '...'));
+
+    // Helper to collect streamed response
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async function collectStream(stream: AsyncIterable<any>): Promise<string> {
+      let result = '';
+      for await (const chunk of stream) {
+        if (chunk.type === 'content_block_delta' && chunk.delta?.type === 'text_delta' && chunk.delta?.text) {
+          result += chunk.delta.text;
+        }
       }
+      return result;
     }
 
-    // CALL 2: Generate Alchemy Layer (only for users with access)
-    let alchemySection = '';
-    let fullDocument = scqaDocument;
-
-    if (hasAlchemyAccess) {
-      console.log('Generating Alchemy Layer...');
-
-      // PRIORITY 1.4: Pass actual classification to Alchemy prompt
-      const alchemyDomains = [classification.primary_domain, ...classification.secondary_domains].filter(Boolean);
-      const alchemyPrompt = ALCHEMY_PROMPT
-        .replace('{problem}', fullProblemContext)
-        .replace('{domains}', alchemyDomains.length > 0 ? alchemyDomains.join(', ') : 'General Business Strategy')
-        .replace('{intent}', classification.intent || 'explore')
-        .replace('{challenges}', classification.challenges.length > 0 ? classification.challenges.join(', ') : 'Strategic challenges identified in conversation');
-
-      const alchemyStream = await anthropic().messages.stream({
+    // Start SCQA generation
+    const scqaPromise = collectStream(
+      await anthropic().messages.stream({
         model: MODELS.OPUS,
-        max_tokens: 2048,
+        max_tokens: 4096,
         system: [
           {
             type: 'text',
-            text: ALCHEMY_PROMPT.split('{problem}')[0], // Cache the Alchemy template
+            text: SCQA_PROMPT.split('{problem}')[0],
             cache_control: { type: 'ephemeral' }
           }
         ],
-        messages: [{
-          role: 'user',
-          content: alchemyPrompt,
-        }],
-      });
+        messages: [{ role: 'user', content: prompt }],
+      })
+    );
 
-      for await (const chunk of alchemyStream) {
-        if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          alchemySection += chunk.delta.text;
-        }
-      }
+    // Start Alchemy generation in parallel (if user has access)
+    const alchemyPromise = hasAlchemyAccess
+      ? collectStream(
+          await anthropic().messages.stream({
+            model: MODELS.OPUS,
+            max_tokens: 2048,
+            system: [
+              {
+                type: 'text',
+                text: ALCHEMY_PROMPT.split('{problem}')[0],
+                cache_control: { type: 'ephemeral' }
+              }
+            ],
+            messages: [{ role: 'user', content: alchemyPrompt }],
+          })
+        )
+      : Promise.resolve('');
+
+    // Wait for both to complete
+    const [scqaDocument, alchemySection] = await Promise.all([scqaPromise, alchemyPromise]);
+    console.log('SCQA and Alchemy generation complete');
+
+    // Merge results
+    let fullDocument = scqaDocument;
+
+    if (hasAlchemyAccess && alchemySection) {
       fullDocument = `${scqaDocument}\n\n---\n\n## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemySection}`;
-    } else {
+    } else if (!hasAlchemyAccess) {
       // Add teaser for users without access
       const alchemyTeaser = `## 🔒 Unlock Counterintuitive Options
 

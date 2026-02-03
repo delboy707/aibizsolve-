@@ -13,6 +13,11 @@
   --color-primary-700: #2F4AC7;
   --color-primary-900: #1E2A5E;
 
+  /* Navy aliases (for CLAUDE.md brand spec compatibility) */
+  --color-navy-primary: #3B5BDB;
+  --color-navy-light: #4F6EF7;
+  --color-navy-dark: #1E2A5E;
+
   /* Neutral - Warm Gray */
   --color-gray-50: #FAFAFA;
   --color-gray-100: #F4F4F5;
