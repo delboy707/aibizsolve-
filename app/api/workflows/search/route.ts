@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),
-        match_threshold: 0.7,
+        match_threshold: 0.35, // Lowered - actual similarities are 0.43-0.47
         match_count: limit,
         filter_domains: domains || null,
       }
