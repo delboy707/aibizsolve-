@@ -32,7 +32,7 @@ export async function GET() {
       .delete()
       .neq('id', '00000000-0000-0000-0000-000000000000');
 
-    // Insert seed workflows
+    // Prepare workflow records
     const workflowRecords = (seedWorkflows as Array<{
       name: string;
       domain: string;
@@ -59,16 +59,28 @@ export async function GET() {
       embedding: w.embedding,
     }));
 
-    const { data, error } = await supabase
-      .from('workflows')
-      .insert(workflowRecords)
-      .select('id, name, domain');
+    // Insert in batches of 25 to avoid timeout
+    const BATCH_SIZE = 25;
+    let totalInserted = 0;
+    const errors: string[] = [];
+    const domainCounts: Record<string, number> = {};
 
-    if (error) {
-      return NextResponse.json(
-        { error: error.message, details: error },
-        { status: 500 }
-      );
+    for (let i = 0; i < workflowRecords.length; i += BATCH_SIZE) {
+      const batch = workflowRecords.slice(i, i + BATCH_SIZE);
+
+      const { data, error } = await supabase
+        .from('workflows')
+        .insert(batch)
+        .select('id, domain');
+
+      if (error) {
+        errors.push(`Batch ${Math.floor(i / BATCH_SIZE) + 1}: ${error.message}`);
+      } else {
+        totalInserted += data?.length || 0;
+        data?.forEach((w: { domain: string }) => {
+          domainCounts[w.domain] = (domainCounts[w.domain] || 0) + 1;
+        });
+      }
     }
 
     // Get final count
@@ -77,12 +89,16 @@ export async function GET() {
       .select('*', { count: 'exact', head: true });
 
     return NextResponse.json({
-      success: true,
-      message: 'Workflows seeded successfully!',
+      success: errors.length === 0,
+      message: errors.length === 0
+        ? `Successfully seeded ${totalInserted} workflows!`
+        : `Seeded ${totalInserted} workflows with ${errors.length} batch errors`,
       before: beforeCount || 0,
-      inserted: data?.length || 0,
+      attempted: workflowRecords.length,
+      inserted: totalInserted,
       after: afterCount || 0,
-      domains: [...new Set(data?.map((w: { domain: string }) => w.domain) || [])],
+      byDomain: domainCounts,
+      errors: errors.length > 0 ? errors : undefined,
     });
   } catch (error) {
     return NextResponse.json(
