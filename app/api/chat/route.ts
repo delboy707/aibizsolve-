@@ -58,7 +58,7 @@ async function searchWorkflows(
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),
-        match_threshold: 0.65,
+        match_threshold: 0.35, // Lowered from 0.65 - actual similarities are 0.43-0.47
         match_count: limit,
         filter_domains: domains && domains.length > 0 ? domains : null,
       }
