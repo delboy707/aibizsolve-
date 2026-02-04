@@ -29,13 +29,42 @@ async function classifyProblem(problem: string): Promise<{
     throw new Error('Unexpected response type from Claude');
   }
 
-  // Parse JSON response, handling potential markdown code blocks
+  // Parse JSON response, handling potential markdown code blocks and extra text
   let jsonText = content.text.trim();
+
+  // Remove markdown code blocks if present
   if (jsonText.startsWith('```')) {
     jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
   }
 
-  return JSON.parse(jsonText);
+  // Extract just the JSON object (find first { to last })
+  const jsonMatch = jsonText.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    console.error('[Chat] No JSON found in classification response:', jsonText.substring(0, 200));
+    // Return default classification if parsing fails
+    return {
+      symptoms: [],
+      challenges: [],
+      primary_domain: 'strategy',
+      secondary_domains: [],
+      intent: 'explore',
+      confidence: 0.5,
+    };
+  }
+
+  try {
+    return JSON.parse(jsonMatch[0]);
+  } catch (parseError) {
+    console.error('[Chat] JSON parse error:', parseError, 'Text:', jsonMatch[0].substring(0, 200));
+    return {
+      symptoms: [],
+      challenges: [],
+      primary_domain: 'strategy',
+      secondary_domains: [],
+      intent: 'explore',
+      confidence: 0.5,
+    };
+  }
 }
 
 // Vector search helper function
