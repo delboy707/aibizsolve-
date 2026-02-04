@@ -54,15 +54,22 @@ export async function GET(req: NextRequest) {
     results.steps.push({ step: 4, name: 'Match workflows RPC', status: 'starting' });
     const embedding = await generateEmbedding(testProblem);
 
+    // Test with threshold 0 to see ALL results
     const { data: workflows, error: searchError } = await supabase.rpc(
       'match_workflows',
       {
         query_embedding: JSON.stringify(embedding),
-        match_threshold: 0.5, // Lower threshold for testing
-        match_count: 5,
+        match_threshold: 0.0, // Zero threshold to see all matches
+        match_count: 10,
         filter_domains: null,
       }
     );
+
+    // Also test raw SQL query for comparison
+    const { data: rawResults, error: rawError } = await supabase
+      .from('workflows')
+      .select('name, domain')
+      .limit(3);
 
     if (searchError) {
       results.steps[3] = {
@@ -83,7 +90,9 @@ export async function GET(req: NextRequest) {
           name: w.name,
           domain: w.domain,
           similarity: w.similarity
-        }))
+        })),
+        rawWorkflowsSample: rawResults,
+        rawError: rawError?.message
       };
     }
 
