@@ -10,7 +10,7 @@ interface ExampleLibraryProps {
 }
 
 export function ExampleLibrary({
-  ctaHref = '/auth',
+  ctaHref = '/auth?mode=signup',
   ctaText = 'Start Free Trial'
 }: ExampleLibraryProps) {
   const [selectedExample, setSelectedExample] = useState<ExampleDocument | null>(null);
@@ -68,7 +68,7 @@ export function ExampleLibrary({
               {/* Preview Button */}
               <button
                 onClick={() => setSelectedExample(example)}
-                className="w-full py-2 px-4 bg-slate-800 text-white rounded-lg hover:bg-slate-700 transition-colors font-medium text-sm"
+                className="w-full py-2 px-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm"
               >
                 Preview Document
               </button>
