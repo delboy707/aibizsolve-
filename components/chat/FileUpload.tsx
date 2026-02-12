@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { UploadedDocument } from '@/types';
 
 interface FileUploadProps {
-  decisionId: string;
+  decisionId?: string;
   onUploadComplete: (document: UploadedDocument) => void;
 }
 
@@ -36,15 +36,17 @@ export default function FileUpload({ decisionId, onUploadComplete }: FileUploadP
       const allowedTypes = [
         'application/pdf',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'text/plain',
-        'text/csv'
+        'text/csv',
+        'image/png',
+        'image/jpeg'
       ];
       if (!allowedTypes.includes(file.type)) {
-        throw new Error('File type not supported. Please upload PDF, DOCX, TXT, or CSV files.');
+        throw new Error('File type not supported. Please upload PDF, DOCX, XLSX, TXT, CSV, or image files.');
       }
 
       // Create storage path
-      const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${file.name}`;
       const storagePath = `${user.id}/${fileName}`;
 
@@ -55,12 +57,12 @@ export default function FileUpload({ decisionId, onUploadComplete }: FileUploadP
 
       if (uploadError) throw uploadError;
 
-      // Create database record
+      // Create database record (decision_id is nullable for pre-submit uploads)
       const { data: document, error: dbError } = await supabase
         .from('uploaded_documents')
         .insert({
           user_id: user.id,
-          decision_id: decisionId,
+          decision_id: decisionId || null,
           file_name: file.name,
           file_type: file.type,
           file_size: file.size,
@@ -93,10 +95,13 @@ export default function FileUpload({ decisionId, onUploadComplete }: FileUploadP
     accept: {
       'application/pdf': ['.pdf'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
       'text/plain': ['.txt'],
-      'text/csv': ['.csv']
+      'text/csv': ['.csv'],
+      'image/png': ['.png'],
+      'image/jpeg': ['.jpg', '.jpeg']
     },
-    maxFiles: 1,
+    maxFiles: 3,
     disabled: uploading
   });
 
@@ -104,16 +109,16 @@ export default function FileUpload({ decisionId, onUploadComplete }: FileUploadP
     <div className="mb-4">
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+        className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
           isDragActive
             ? 'border-primary-600 bg-primary-50'
             : 'border-gray-300 hover:border-primary-400 hover:bg-gray-50'
         } ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-2">
+        <div className="flex flex-col items-center gap-1">
           <svg
-            className="w-8 h-8 text-gray-400"
+            className="w-6 h-6 text-gray-400"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -132,10 +137,10 @@ export default function FileUpload({ decisionId, onUploadComplete }: FileUploadP
           ) : (
             <>
               <p className="text-sm text-gray-600">
-                Drag & drop a file here, or click to select
+                Drag & drop files here, or click to select
               </p>
               <p className="text-xs text-gray-500">
-                PDF, DOCX, TXT, or CSV (max 10MB)
+                PDF, DOCX, XLSX, TXT, CSV, or images (max 10MB each)
               </p>
             </>
           )}

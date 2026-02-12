@@ -5,14 +5,20 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import ChatInterface from '@/components/chat/ChatInterface';
 import Link from 'next/link';
-import type { Message } from '@/types';
+import type { Message, UploadedDocument } from '@/types';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [decisionId, setDecisionId] = useState<string | null>(null);
+  const [pendingUploads, setPendingUploads] = useState<UploadedDocument[]>([]);
   const creatingDecision = useRef(false);
   const router = useRouter();
   const supabase = createClient();
+
+  // Handle file uploads before decision creation
+  const handleUploadComplete = (document: UploadedDocument) => {
+    setPendingUploads(prev => [...prev, document]);
+  };
 
   const handleSendMessage = async (content: string) => {
     try {
@@ -48,6 +54,15 @@ export default function ChatPage() {
 
         currentDecisionId = decision.id;
         setDecisionId(currentDecisionId);
+
+        // Link any pre-submit uploaded documents to this decision
+        if (pendingUploads.length > 0) {
+          const uploadIds = pendingUploads.map(doc => doc.id);
+          await supabase
+            .from('uploaded_documents')
+            .update({ decision_id: currentDecisionId })
+            .in('id', uploadIds);
+        }
 
         // Save the initial user message before navigating
         await supabase.from('messages').insert({
@@ -97,21 +112,72 @@ export default function ChatPage() {
         setMessages((prev) => [...prev, userMessage as Message]);
       }
 
-      // TODO: Call AI API to process message and generate response
-      // For now, just add a placeholder response
-      const { data: assistantMessage } = await supabase
-        .from('messages')
-        .insert({
+      // Call AI API with streaming
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          decisionId: currentDecisionId,
+          userMessage: content,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to get AI response');
+      }
+
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+
+      if (reader) {
+        const tempMessage: Message = {
+          id: 'streaming-temp',
           decision_id: currentDecisionId,
           role: 'assistant',
-          content: 'Thank you for sharing that. I\'m analyzing your problem and will ask a few clarifying questions to better understand your situation.',
-          step_label: 'Understanding your problem',
-        })
-        .select()
-        .single();
+          content: '',
+          step_label: null,
+          created_at: new Date().toISOString(),
+        };
+        setMessages(prev => [...prev, tempMessage]);
 
-      if (assistantMessage) {
-        setMessages((prev) => [...prev, assistantMessage as Message]);
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === 'content') {
+                  accumulatedText += data.text;
+                  setMessages(prev =>
+                    prev.map(msg =>
+                      msg.id === 'streaming-temp'
+                        ? { ...msg, content: accumulatedText }
+                        : msg
+                    )
+                  );
+                } else if (data.type === 'done') {
+                  setMessages(prev =>
+                    prev.map(msg =>
+                      msg.id === 'streaming-temp' ? data.message : msg
+                    )
+                  );
+                } else if (data.type === 'error') {
+                  console.error('Streaming error:', data.error);
+                  setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
+                }
+              } catch {
+                // Ignore JSON parse errors for incomplete chunks
+              }
+            }
+          }
+        }
       }
 
     } catch (error) {
@@ -148,6 +214,8 @@ export default function ChatPage() {
           decisionId={decisionId || undefined}
           messages={messages}
           onSendMessage={handleSendMessage}
+          pendingUploads={pendingUploads}
+          onUploadComplete={handleUploadComplete}
         />
       </main>
     </div>

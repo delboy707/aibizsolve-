@@ -179,6 +179,25 @@ export async function POST(req: NextRequest) {
       .eq('decision_id', decisionId)
       .order('created_at', { ascending: true });
 
+    // Fetch uploaded documents for this decision
+    const { data: uploadedDocs } = await supabase
+      .from('uploaded_documents')
+      .select('*')
+      .eq('decision_id', decisionId)
+      .eq('processing_status', 'completed');
+
+    // Build uploaded document context
+    let uploadedDocContext = '';
+    if (uploadedDocs && uploadedDocs.length > 0) {
+      uploadedDocContext = '\n\n**UPLOADED DOCUMENTS CONTEXT:**\n\n';
+      uploadedDocs.forEach((doc: { file_name: string; extracted_text: string }, index: number) => {
+        if (doc.extracted_text) {
+          uploadedDocContext += `Document ${index + 1}: ${doc.file_name}\n`;
+          uploadedDocContext += `${doc.extracted_text.substring(0, 3000)}\n\n---\n\n`;
+        }
+      });
+    }
+
     // PRIORITY 1.2: Run classification if not already done
     let classification = {
       symptoms: decision.classified_symptoms || [],
@@ -193,7 +212,7 @@ export async function POST(req: NextRequest) {
     const conversationContext = messages
       ?.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
       .join('\n\n') || '';
-    const fullProblemContext = `${decision.problem_statement || ''}\n\nConversation:\n${conversationContext}`;
+    const fullProblemContext = `${decision.problem_statement || ''}\n\nConversation:\n${conversationContext}${uploadedDocContext}`;
 
     // Run classification if not already classified
     if (!decision.classified_domains || decision.classified_domains.length === 0) {
@@ -248,11 +267,12 @@ export async function POST(req: NextRequest) {
       ?.map((m: { role: string; content: string }) => `${m.role}: ${m.content}`)
       .join('\n\n') || '';
 
-    // Build rich workflow context with prompts and key questions
+    // Build rich workflow context with full methodology prompts
     const workflowsSummary = workflows.length > 0
       ? workflows.map((w, i) =>
           `### Workflow ${i + 1}: ${w.name} (${w.domain})\n` +
           `**Summary**: ${w.task_summary}\n` +
+          `**Methodology**:\n${w.full_prompt}\n` +
           `**Key Questions**: ${(w.key_questions || []).slice(0, 3).join('; ')}\n` +
           `**Similarity**: ${(w.similarity * 100).toFixed(0)}%`
         ).join('\n\n')
