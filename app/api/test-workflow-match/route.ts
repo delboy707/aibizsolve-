@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { generateEmbedding } from '@/lib/ai/openai';
 
 export async function GET(req: NextRequest) {
@@ -9,9 +9,9 @@ export async function GET(req: NextRequest) {
   };
 
   try {
-    // Step 1: Test Supabase connection
+    // Step 1: Test Supabase connection (admin client bypasses RLS)
     results.steps.push({ step: 1, name: 'Supabase connection', status: 'starting' });
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     results.steps[0].status = 'success';
 
     // Step 2: Count workflows

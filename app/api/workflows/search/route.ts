@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { generateEmbedding } from '@/lib/ai/openai';
 
 export async function POST(req: NextRequest) {
@@ -18,11 +19,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Problem required' }, { status: 400 });
     }
 
+    // Use admin client to bypass RLS on shared workflows table
+    const adminSupabase = createAdminClient();
+
     // Generate embedding for the problem
     const problemEmbedding = await generateEmbedding(problem);
 
     // Use the match_workflows function for vector similarity search
-    const { data: workflows, error: searchError } = await supabase.rpc(
+    const { data: workflows, error: searchError } = await adminSupabase.rpc(
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),

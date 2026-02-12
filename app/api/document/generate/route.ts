@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
 import { ALCHEMY_PROMPT } from '@/lib/ai/prompts';
 import { sendDocumentReadyEmail } from '@/lib/email/client';
@@ -7,9 +8,8 @@ import { generateEmbedding } from '@/lib/ai/openai';
 import { analyzeCrossDomainSynergy, Domain } from '@/lib/ai/synergy';
 import { classifyProblem } from '@/lib/ai/classify';
 
-// Vector search helper function
+// Vector search helper — uses admin client to bypass RLS on shared workflows table
 async function searchWorkflows(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   problem: string,
   domains?: string[],
   limit: number = 4
@@ -22,11 +22,13 @@ async function searchWorkflows(
   similarity: number;
 }>> {
   try {
+    const adminSupabase = createAdminClient();
+
     // Generate embedding for the problem
     const problemEmbedding = await generateEmbedding(problem);
 
     // Use the match_workflows function for vector similarity search
-    const { data: workflows, error: searchError } = await supabase.rpc(
+    const { data: workflows, error: searchError } = await adminSupabase.rpc(
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),
@@ -255,7 +257,6 @@ export async function POST(req: NextRequest) {
 
     console.log('Searching for matching workflows...');
     const workflows = await searchWorkflows(
-      supabase,
       fullProblemContext,
       allDomains.length > 0 ? allDomains : undefined,
       4
