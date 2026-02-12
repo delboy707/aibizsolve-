@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
 import { CLARIFYING_PROMPT, CLASSIFICATION_PROMPT } from '@/lib/ai/prompts';
 import { generateEmbedding } from '@/lib/ai/openai';
@@ -67,9 +68,8 @@ async function classifyProblem(problem: string): Promise<{
   }
 }
 
-// Vector search helper function
+// Vector search helper — uses admin client to bypass RLS on shared workflows table
 async function searchWorkflows(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   problem: string,
   domains?: string[],
   limit: number = 3
@@ -81,9 +81,10 @@ async function searchWorkflows(
   similarity: number;
 }>> {
   try {
+    const adminSupabase = createAdminClient();
     const problemEmbedding = await generateEmbedding(problem);
 
-    const { data: workflows, error: searchError } = await supabase.rpc(
+    const { data: workflows, error: searchError } = await adminSupabase.rpc(
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),
@@ -202,7 +203,6 @@ export async function POST(req: NextRequest) {
 
     if (allDomains.length > 0 || decision.status === 'intake') {
       const workflows = await searchWorkflows(
-        supabase,
         userMessage,
         allDomains.length > 0 ? allDomains : undefined,
         3

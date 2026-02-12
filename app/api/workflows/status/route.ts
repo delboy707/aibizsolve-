@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     // Get total workflow count
     const { count: totalCount, error: countError } = await supabase
