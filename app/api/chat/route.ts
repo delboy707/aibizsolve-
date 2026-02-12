@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
-import { CLARIFYING_PROMPT, CLASSIFICATION_PROMPT } from '@/lib/ai/prompts';
+import { CLARIFYING_PROMPT, CLASSIFICATION_PROMPT, SYSTEM_PREAMBLE } from '@/lib/ai/prompts';
 import { generateEmbedding } from '@/lib/ai/openai';
 
 // Classification helper function (runs on first message)
@@ -268,15 +268,15 @@ Use this classification to ask targeted questions relevant to the ${classificati
       stepLabel = 'Understanding your problem';
     } else if (decision.status === 'clarifying') {
       // Continue asking questions with full context
-      systemPrompt = `You are a strategic business consultant specializing in ${classification.primary_domain || 'business strategy'}.
+      systemPrompt = SYSTEM_PREAMBLE + `You are now in the clarification phase, specializing in ${classification.primary_domain || 'business strategy'}.
 
-Continue the conversation naturally. If you have enough information to provide strategic recommendations, say so and ask if they're ready to see the analysis. Otherwise, ask 1-2 more clarifying questions.
+Continue the conversation naturally. If you have enough information to provide strategic recommendations, say so and ask if they're ready to generate the full strategic document. Otherwise, ask 1-2 more clarifying questions.
 
 Include both rational and behavioral questions when appropriate.${classificationContext}${workflowContext}${documentContext}`;
       stepLabel = 'Gathering context';
     } else {
       // General conversation with context
-      systemPrompt = `You are a strategic business consultant specializing in ${classification.primary_domain || 'business strategy'}. Continue the conversation naturally, providing insights and asking relevant follow-up questions.${classificationContext}${workflowContext}${documentContext}`;
+      systemPrompt = SYSTEM_PREAMBLE + `You are in an ongoing strategic conversation, specializing in ${classification.primary_domain || 'business strategy'}. Continue naturally, providing insights and asking relevant follow-up questions.${classificationContext}${workflowContext}${documentContext}`;
       stepLabel = 'Analyzing';
     }
 
