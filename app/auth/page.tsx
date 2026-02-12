@@ -8,9 +8,11 @@ import Link from 'next/link';
 function AuthForm() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode');
+  const redirect = searchParams.get('redirect');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(mode === 'signup');
+  const [isResetPassword, setIsResetPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const router = useRouter();
@@ -22,6 +24,15 @@ function AuthForm() {
     setMessage('');
 
     try {
+      if (isResetPassword) {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?mode=reset-callback`,
+        });
+        if (error) throw error;
+        setMessage('Check your email for the password reset link.');
+        return;
+      }
+
       if (isSignUp) {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -43,7 +54,7 @@ function AuthForm() {
         if (error) throw error;
 
         if (data.user) {
-          router.push('/dashboard');
+          router.push(redirect || '/dashboard');
         }
       }
     } catch (error: any) {
@@ -51,6 +62,18 @@ function AuthForm() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getTitle = () => {
+    if (isResetPassword) return 'Reset your password';
+    if (isSignUp) return 'Create your account';
+    return 'Welcome back';
+  };
+
+  const getSubtitle = () => {
+    if (isResetPassword) return "Enter your email and we'll send a reset link.";
+    if (isSignUp) return '28 days free. No credit card required.';
+    return 'Sign in to continue';
   };
 
   return (
@@ -61,10 +84,10 @@ function AuthForm() {
             QEP AISolve
           </Link>
           <h1 className="text-2xl font-bold text-navy-dark mt-6">
-            {isSignUp ? 'Create your account' : 'Welcome back'}
+            {getTitle()}
           </h1>
           <p className="text-slate-600 mt-2">
-            {isSignUp ? '28 days free. No credit card required.' : 'Sign in to continue'}
+            {getSubtitle()}
           </p>
         </div>
 
@@ -84,20 +107,22 @@ function AuthForm() {
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                minLength={6}
-                className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-primary"
-              />
-            </div>
+            {!isResetPassword && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-primary"
+                />
+              </div>
+            )}
 
             {message && (
               <div className={`p-3 rounded-md text-sm ${
@@ -114,17 +139,41 @@ function AuthForm() {
               disabled={loading}
               className="w-full bg-navy-primary text-white py-2 rounded-md hover:bg-navy-light focus:outline-none focus:ring-2 focus:ring-navy-primary focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Loading...' : isSignUp ? 'Sign Up' : 'Sign In'}
+              {loading
+                ? 'Loading...'
+                : isResetPassword
+                ? 'Send Reset Link'
+                : isSignUp
+                ? 'Sign Up'
+                : 'Sign In'}
             </button>
           </form>
 
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="text-navy-primary hover:text-navy-light focus:outline-none focus:underline text-sm"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
-            </button>
+          <div className="mt-6 text-center space-y-2">
+            {!isResetPassword && !isSignUp && (
+              <button
+                onClick={() => { setIsResetPassword(true); setMessage(''); }}
+                className="text-slate-500 hover:text-navy-primary focus:outline-none focus:underline text-sm block w-full"
+              >
+                Forgot your password?
+              </button>
+            )}
+
+            {isResetPassword ? (
+              <button
+                onClick={() => { setIsResetPassword(false); setMessage(''); }}
+                className="text-navy-primary hover:text-navy-light focus:outline-none focus:underline text-sm"
+              >
+                Back to sign in
+              </button>
+            ) : (
+              <button
+                onClick={() => { setIsSignUp(!isSignUp); setMessage(''); }}
+                className="text-navy-primary hover:text-navy-light focus:outline-none focus:underline text-sm"
+              >
+                {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+              </button>
+            )}
           </div>
         </div>
       </div>

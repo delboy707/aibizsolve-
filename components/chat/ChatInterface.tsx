@@ -12,17 +12,32 @@ interface ChatInterfaceProps {
   decisionId?: string;
   messages?: Message[];
   onSendMessage: (content: string) => Promise<void>;
+  pendingUploads?: UploadedDocument[];
+  onUploadComplete?: (document: UploadedDocument) => void;
 }
 
 export default function ChatInterface({
   decisionId,
   messages = [],
-  onSendMessage
+  onSendMessage,
+  pendingUploads = [],
+  onUploadComplete
 }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<string>('');
-  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>([]);
+  const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>(pendingUploads);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sync pendingUploads prop changes
+  useEffect(() => {
+    if (pendingUploads.length > 0) {
+      setUploadedDocs(prev => {
+        const existingIds = new Set(prev.map(d => d.id));
+        const newDocs = pendingUploads.filter(d => !existingIds.has(d.id));
+        return [...prev, ...newDocs];
+      });
+    }
+  }, [pendingUploads]);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -49,8 +64,14 @@ export default function ChatInterface({
 
   const handleUploadComplete = (document: UploadedDocument) => {
     setUploadedDocs(prev => [...prev, document]);
-    // Optionally send a message indicating document was uploaded
-    handleSendMessage(`[Document uploaded: ${document.file_name}]`);
+    // Notify parent component about the upload
+    if (onUploadComplete) {
+      onUploadComplete(document);
+    }
+  };
+
+  const handleRemoveDoc = (docId: string) => {
+    setUploadedDocs(prev => prev.filter(d => d.id !== docId));
   };
 
   const showExamples = messages.length === 0;
@@ -73,18 +94,11 @@ export default function ChatInterface({
 
       {/* Input Area */}
       <div className="border-t border-gray-200 bg-white p-4 shadow-sm space-y-3">
-        {!decisionId && (
-          <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-            💡 Tip: You can upload documents (PDF, DOCX, TXT, CSV) after describing your problem
-          </div>
-        )}
-
-        {decisionId && (
-          <FileUpload
-            decisionId={decisionId}
-            onUploadComplete={handleUploadComplete}
-          />
-        )}
+        {/* File upload — always visible (works with or without decisionId) */}
+        <FileUpload
+          decisionId={decisionId}
+          onUploadComplete={handleUploadComplete}
+        />
 
         {uploadedDocs.length > 0 && (
           <div className="flex flex-wrap gap-2">
@@ -100,6 +114,17 @@ export default function ChatInterface({
                 <span className="text-green-600">
                   {doc.processing_status === 'completed' ? '✓' : '⏳'}
                 </span>
+                {!decisionId && (
+                  <button
+                    onClick={() => handleRemoveDoc(doc.id)}
+                    className="text-gray-400 hover:text-red-500 ml-1"
+                    title="Remove file"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
             ))}
           </div>
