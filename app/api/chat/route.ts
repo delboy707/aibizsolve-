@@ -81,7 +81,7 @@ async function searchWorkflows(
   similarity: number;
 }>> {
   try {
-    const adminSupabase = createAdminClient();
+    const adminSupabase = await createClient();
     const problemEmbedding = await generateEmbedding(problem);
 
     const { data: workflows, error: searchError } = await adminSupabase.rpc(
