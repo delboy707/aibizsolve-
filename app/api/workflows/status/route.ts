@@ -1,70 +1,88 @@
+// Replace the contents of: app/api/workflows/status/route.ts
+// with this temporary diagnostic version
+
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient as createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(req: NextRequest) {
-  try {
-    const supabase = createAdminClient();
+  const diagnostics: Record<string, unknown> = {
+    timestamp: new Date().toISOString(),
+    env_check: {
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? `${process.env.NEXT_PUBLIC_SUPABASE_URL.substring(0, 30)}...` : 'MISSING',
+      SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY ? `${process.env.SUPABASE_SERVICE_ROLE_KEY.substring(0, 20)}...(length: ${process.env.SUPABASE_SERVICE_ROLE_KEY.length})` : 'MISSING',
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY ? 'SET' : 'MISSING',
+      ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ? 'SET' : 'MISSING',
+    },
+  };
 
-    // Get total workflow count
-    const { count: totalCount, error: countError } = await supabase
+  try {
+    // Step 1: Try creating the admin client
+    const { createClient } = await import('@/lib/supabase/admin');
+    const supabase = createClient();
+    diagnostics.admin_client = 'Created OK';
+
+    // Step 2: Try a simple query
+    const { count, error, status, statusText } = await supabase
       .from('workflows')
       .select('*', { count: 'exact', head: true });
 
-    if (countError) {
-      return NextResponse.json({
-        status: 'error',
-        error: countError.message,
-        message: 'Failed to query workflows table. Make sure migrations have been run.',
-      }, { status: 500 });
+    diagnostics.query_result = {
+      count,
+      error: error ? {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        // Include the full error object
+        full: JSON.parse(JSON.stringify(error)),
+      } : null,
+      status,
+      statusText,
+    };
+
+    // Step 3: If query failed, try a raw fetch to see what Supabase returns
+    if (error) {
+      try {
+        const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+        const rawResponse = await fetch(`${url}/rest/v1/workflows?select=count&limit=1`, {
+          headers: {
+            'apikey': key!,
+            'Authorization': `Bearer ${key}`,
+            'Content-Type': 'application/json',
+            'Prefer': 'count=exact',
+          },
+        });
+        const rawBody = await rawResponse.text();
+        diagnostics.raw_fetch = {
+          status: rawResponse.status,
+          statusText: rawResponse.statusText,
+          body: rawBody.substring(0, 500),
+          headers: Object.fromEntries(rawResponse.headers.entries()),
+        };
+      } catch (fetchErr) {
+        diagnostics.raw_fetch = {
+          error: String(fetchErr),
+        };
+      }
     }
 
-    // Get count by domain
-    const { data: domainData, error: domainError } = await supabase
-      .from('workflows')
-      .select('domain');
+    // Step 4: Try listing tables to confirm connection works
+    const { data: tableCheck, error: tableError } = await supabase
+      .from('users')
+      .select('id', { count: 'exact', head: true });
 
-    let domainCounts: Record<string, number> = {};
-    if (!domainError && domainData) {
-      domainCounts = domainData.reduce((acc: Record<string, number>, row: { domain: string }) => {
-        acc[row.domain] = (acc[row.domain] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-    }
+    diagnostics.users_table_check = {
+      accessible: !tableError,
+      error: tableError ? tableError.message : null,
+    };
 
-    // Check if embeddings exist (sample check)
-    const { data: sampleWorkflow } = await supabase
-      .from('workflows')
-      .select('id, name, embedding')
-      .limit(1)
-      .single();
+    return NextResponse.json(diagnostics, { status: error ? 500 : 200 });
 
-    const hasEmbeddings = sampleWorkflow?.embedding != null;
-
-    return NextResponse.json({
-      status: 'ok',
-      workflows: {
-        total: totalCount || 0,
-        byDomain: domainCounts,
-        hasEmbeddings,
-        sampleWorkflow: sampleWorkflow ? {
-          id: sampleWorkflow.id,
-          name: sampleWorkflow.name,
-          hasEmbedding: !!sampleWorkflow.embedding,
-        } : null,
-      },
-      ready: (totalCount || 0) > 0 && hasEmbeddings,
-      message: (totalCount || 0) === 0
-        ? 'No workflows found. Run seed-workflows.ts to populate the database.'
-        : !hasEmbeddings
-        ? 'Workflows found but no embeddings. Re-run seed with embedded JSON.'
-        : `${totalCount} workflows ready with embeddings.`,
-    });
-  } catch (error) {
-    console.error('Workflow status error:', error);
-    return NextResponse.json({
-      status: 'error',
-      error: String(error),
-      message: 'Failed to check workflow status',
-    }, { status: 500 });
+  } catch (outerError) {
+    diagnostics.outer_error = {
+      message: outerError instanceof Error ? outerError.message : String(outerError),
+      stack: outerError instanceof Error ? outerError.stack?.split('\n').slice(0, 3) : undefined,
+    };
+    return NextResponse.json(diagnostics, { status: 500 });
   }
 }
