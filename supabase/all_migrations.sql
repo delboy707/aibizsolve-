@@ -281,6 +281,24 @@ CREATE POLICY "Authenticated users can read payment stats"
   USING (auth.role() = 'authenticated');
 
 -- ============================================================================
+-- MIGRATION 6: Fix Workflows & Payment Stats RLS Policies
+-- ============================================================================
+-- Workflows and payment_stats are shared reference data, not user-specific.
+-- They need to be readable by all roles (anon, authenticated, service_role)
+-- so that API routes work regardless of auth context.
+
+DROP POLICY IF EXISTS "Authenticated users can read workflows" ON workflows;
+DROP POLICY IF EXISTS "Authenticated users can read payment stats" ON payment_stats;
+
+CREATE POLICY "Anyone can read workflows"
+  ON workflows FOR SELECT
+  USING (true);
+
+CREATE POLICY "Anyone can read payment stats"
+  ON payment_stats FOR SELECT
+  USING (true);
+
+-- ============================================================================
 -- SETUP COMPLETE!
 -- ============================================================================
 -- Next steps:
