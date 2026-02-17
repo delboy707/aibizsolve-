@@ -68,17 +68,33 @@ export function AlchemySection({ content, hasAccess, onCopy }: AlchemySectionPro
     return sections;
   };
 
+  const escapeHtml = (text: string): string => {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  const renderInline = (text: string): string => {
+    let escaped = escapeHtml(text);
+    escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
+    return escaped;
+  };
+
   const renderLines = (lines: string[]): string => {
     return lines
       .map((line: string) => {
         if (line.startsWith('### ')) {
-          return `<h3 class="text-xl font-semibold mt-6 mb-3 text-warning">${line.substring(4)}</h3>`;
+          return `<h3 class="text-xl font-semibold mt-6 mb-3 text-warning">${renderInline(line.substring(4))}</h3>`;
         }
         if (line.startsWith('**') && line.endsWith('**')) {
-          return `<p class="font-semibold text-gray-900 mt-4 mb-2">${line.slice(2, -2)}</p>`;
+          return `<p class="font-semibold text-gray-900 mt-4 mb-2">${escapeHtml(line.slice(2, -2))}</p>`;
         }
         if (line.startsWith('- ')) {
-          return `<li class="ml-6 mb-1">${line.substring(2)}</li>`;
+          return `<li class="ml-6 mb-1">${renderInline(line.substring(2))}</li>`;
         }
         if (line.trim() === '---') {
           return '<hr class="my-8 border-gray-300" />';
@@ -86,7 +102,7 @@ export function AlchemySection({ content, hasAccess, onCopy }: AlchemySectionPro
         if (line.trim() === '') {
           return '<br />';
         }
-        return `<p class="mb-3 text-gray-700">${line}</p>`;
+        return `<p class="mb-3 text-gray-700">${renderInline(line)}</p>`;
       })
       .join('');
   };

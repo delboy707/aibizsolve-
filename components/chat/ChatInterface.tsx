@@ -50,8 +50,8 @@ export default function ChatInterface({
 
     try {
       await onSendMessage(content);
-    } catch (error) {
-      console.error('Error sending message:', error);
+    } catch {
+      // Error handled by parent
     } finally {
       setIsLoading(false);
       setCurrentStep('');

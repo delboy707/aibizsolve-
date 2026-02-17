@@ -82,9 +82,9 @@ export default function FileUpload({ decisionId, onUploadComplete }: FileUploadP
       });
 
       onUploadComplete(document as UploadedDocument);
-    } catch (err: any) {
-      console.error('Upload error:', err);
-      setError(err.message || 'Failed to upload file');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to upload file';
+      setError(message);
     } finally {
       setUploading(false);
     }

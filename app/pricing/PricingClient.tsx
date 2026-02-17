@@ -68,8 +68,7 @@ export default function PricingClient({ user, userData, segments }: PricingClien
       if (url) {
         window.location.href = url;
       }
-    } catch (error) {
-      console.error('Checkout error:', error);
+    } catch {
       alert('Failed to start checkout. Please try again.');
       setIsProcessing(false);
     }

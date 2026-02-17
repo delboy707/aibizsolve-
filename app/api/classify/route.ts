@@ -31,13 +31,26 @@ export async function POST(req: NextRequest) {
       ],
     });
 
+    if (!response.content.length) {
+      throw new Error('Empty response from Claude');
+    }
+
     const content = response.content[0];
     if (content.type !== 'text') {
       throw new Error('Unexpected response type from Claude');
     }
 
-    // Parse JSON response
-    const classification = JSON.parse(content.text);
+    // Parse JSON response — extract JSON object if wrapped in extra text
+    let classification;
+    try {
+      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response');
+      }
+      classification = JSON.parse(jsonMatch[0]);
+    } catch {
+      throw new Error('Failed to parse classification response');
+    }
 
     // Update decision with classification if decisionId provided
     if (decisionId) {
@@ -58,8 +71,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json(classification);
-  } catch (error) {
-    console.error('Classification error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to classify problem' },
       { status: 500 }

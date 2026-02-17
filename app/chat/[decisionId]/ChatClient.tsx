@@ -35,7 +35,7 @@ export default function ChatClient({
           filter: `decision_id=eq.${decisionId}`,
         },
         (payload) => {
-          console.log('New message received via subscription:', payload.new);
+          // Message received via subscription
           setMessages((prev) => {
             // Avoid duplicates
             const exists = prev.some(msg => msg.id === payload.new.id);
@@ -44,9 +44,7 @@ export default function ChatClient({
           });
         }
       )
-      .subscribe((status) => {
-        console.log('Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -63,7 +61,7 @@ export default function ChatClient({
         .order('created_at', { ascending: true });
 
       if (newMessages && newMessages.length > messages.length) {
-        console.log('Polling found new messages:', newMessages.length - messages.length);
+        // Found new messages via polling
         setMessages(newMessages as Message[]);
       }
     }, 2000); // Poll every 2 seconds
@@ -145,7 +143,6 @@ export default function ChatClient({
                   );
                   streamingMessageId = data.message.id;
                 } else if (data.type === 'error') {
-                  console.error('Streaming error:', data.error);
                   // Remove temp message on error
                   setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
                 }
@@ -157,7 +154,6 @@ export default function ChatClient({
         }
       }
     } catch (error) {
-      console.error('Error sending message:', error);
       throw error;
     }
   };
@@ -190,8 +186,7 @@ export default function ChatClient({
 
       // Redirect to document view
       window.location.href = `/document/${decisionId}`;
-    } catch (error) {
-      console.error('Error generating document:', error);
+    } catch {
       alert('Failed to generate document. Please try again.');
       setIsGeneratingDocument(false);
       setGenerationProgress('');

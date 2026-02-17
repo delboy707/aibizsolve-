@@ -115,8 +115,7 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
 
       // Reload page to show new document
       window.location.reload();
-    } catch (error) {
-      console.error('Regeneration error:', error);
+    } catch {
       alert('Failed to regenerate document. Please try again.');
       setRegenerating(false);
     }

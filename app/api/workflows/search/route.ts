@@ -13,11 +13,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { problem, domains, limit = 3 } = await req.json();
+    const { problem, domains, limit: rawLimit = 3 } = await req.json();
 
     if (!problem) {
       return NextResponse.json({ error: 'Problem required' }, { status: 400 });
     }
+
+    const limit = Math.min(Math.max(1, Number(rawLimit) || 3), 20);
 
     // Use admin client to bypass RLS on shared workflows table
     const adminSupabase = createAdminClient();
@@ -37,7 +39,6 @@ export async function POST(req: NextRequest) {
     );
 
     if (searchError) {
-      console.error('Workflow search error:', searchError);
       return NextResponse.json(
         { error: 'Failed to search workflows' },
         { status: 500 }
@@ -45,8 +46,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ workflows: workflows || [] });
-  } catch (error) {
-    console.error('Workflow search error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to search workflows' },
       { status: 500 }

@@ -47,7 +47,6 @@ export default function ChatPage() {
           .single();
 
         if (decisionError) {
-          console.error('Error creating decision:', decisionError);
           creatingDecision.current = false;
           throw decisionError;
         }
@@ -84,7 +83,7 @@ export default function ChatPage() {
         });
 
         if (!aiResponse.ok) {
-          console.error('Failed to get AI response');
+          // AI response failed; page will still navigate to chat
         }
 
         // Update URL to include decision ID (this will navigate away)
@@ -169,7 +168,6 @@ export default function ChatPage() {
                     )
                   );
                 } else if (data.type === 'error') {
-                  console.error('Streaming error:', data.error);
                   setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
                 }
               } catch {
@@ -181,7 +179,6 @@ export default function ChatPage() {
       }
 
     } catch (error) {
-      console.error('Error sending message:', error);
       throw error;
     }
   };

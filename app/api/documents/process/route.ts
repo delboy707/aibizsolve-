@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
 export async function POST(req: NextRequest) {
+  let parsedDocumentId: string | null = null;
+
   try {
     const { documentId } = await req.json();
+    parsedDocumentId = documentId;
 
     if (!documentId) {
       return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
@@ -81,21 +84,25 @@ export async function POST(req: NextRequest) {
       extractedText: extractedText.substring(0, 500) + '...' // Return preview
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Document processing error:', error);
 
-    // Update status to failed
-    if (req.body) {
-      const { documentId } = await req.json();
-      const supabase = await createClient();
-      await supabase
-        .from('uploaded_documents')
-        .update({ processing_status: 'failed' })
-        .eq('id', documentId);
+    // Update status to failed using the already-parsed documentId
+    if (parsedDocumentId) {
+      try {
+        const supabase = await createClient();
+        await supabase
+          .from('uploaded_documents')
+          .update({ processing_status: 'failed' })
+          .eq('id', parsedDocumentId);
+      } catch {
+        // Best-effort status update
+      }
     }
 
+    const message = error instanceof Error ? error.message : 'Failed to process document';
     return NextResponse.json(
-      { error: error.message || 'Failed to process document' },
+      { error: message },
       { status: 500 }
     );
   }

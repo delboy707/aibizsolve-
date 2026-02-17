@@ -11,16 +11,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No signature' }, { status: 400 });
   }
 
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('STRIPE_WEBHOOK_SECRET not configured');
+    return NextResponse.json({ error: 'Webhook not configured' }, { status: 500 });
+  }
+
   let event: Stripe.Event;
 
   try {
-    event = stripe().webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
-  } catch (err: any) {
-    console.error('Webhook signature verification failed:', err.message);
+    event = stripe().webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    console.error('Webhook signature verification failed:', message);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -49,8 +52,10 @@ export async function POST(req: NextRequest) {
         const amount = subscription.items.data[0]?.price?.unit_amount || 0;
         const monthlyPayment = amount / 100; // Convert cents to dollars
 
-        // Get segment from metadata
-        const segment = subscription.metadata.segment || 'solopreneur';
+        // Get segment from metadata, validate against allowed values
+        const VALID_SEGMENTS = ['solopreneur', 'small_business', 'manager', 'ceo'];
+        const rawSegment = subscription.metadata.segment || 'solopreneur';
+        const segment = VALID_SEGMENTS.includes(rawSegment) ? rawSegment : 'solopreneur';
 
         // Get segment average
         const { data: segmentData } = await supabase
@@ -135,7 +140,7 @@ export async function POST(req: NextRequest) {
 
 // Helper function to update payment stats
 async function updatePaymentStats(
-  supabase: any,
+  supabase: ReturnType<typeof createClient>,
   segment: string,
   newPayment: number
 ) {
@@ -151,9 +156,11 @@ async function updatePaymentStats(
   const currentCount = currentStats.payment_count || 0;
   const currentAverage = currentStats.average_payment || 0;
 
-  // Calculate new average
+  // Calculate new average with NaN safety
   const newCount = currentCount + 1;
   const newAverage = ((currentAverage * currentCount) + newPayment) / newCount;
+
+  if (!Number.isFinite(newAverage)) return;
 
   // Update stats
   await supabase
