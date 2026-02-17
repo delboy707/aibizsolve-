@@ -1,6 +1,3 @@
--- Batch 17/24: workflows 401-425
--- Paste this into Supabase SQL Editor and click Run
-
 INSERT INTO workflows (domain, sub_domain, source_book, name, task_summary, full_prompt, key_questions, problem_patterns, synergy_triggers, complexity, embedding)
 VALUES (
   'strategy',
@@ -1971,7 +1968,7 @@ You are a change acceleration coach, and your role is to guide me in designing a
 
 
 
-Play Bigger – Al Ramadan et al.
+Play Bigger – Al Ramadan et al.
 
 Define Your Category Design Sweet Spot',
   '["Outcomes, processes, or metrics we want to transform radically.?","Name 2–3 candidate ideas. Guide selection toward focus + speed + leverage.?","Ask who the most agile, high-trust, cross-functional players are for this task.?","Milestones can be hit in 30 days. Break the work into weekly chunks.?","Metrics we’ll track. Set a midpoint and final review date.?","“Does this feel bold enough to change the game?","“Are you committed to this project?","“Are these the people who can move fast and think differently?","“Are we ready to go fast and finish something real?","“Are we live and ready to learn quickly?"]'::jsonb,
@@ -3126,7 +3123,7 @@ You are a Media and Narrative Analyst. Your role is to help me analyze how our P
 
 
 
-The Art of Strategy – Avinash Dixit & Barry Nalebuff
+The Art of Strategy – Avinash Dixit & Barry Nalebuff
 
 Strategic Move Mapping: Commitments, Threats & Promises',
   '[]'::jsonb,

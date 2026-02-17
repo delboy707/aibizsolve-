@@ -1,6 +1,3 @@
--- Batch 22/24: workflows 526-550
--- Paste this into Supabase SQL Editor and click Run
-
 INSERT INTO workflows (domain, sub_domain, source_book, name, task_summary, full_prompt, key_questions, problem_patterns, synergy_triggers, complexity, embedding)
 VALUES (
   'strategy',
@@ -1502,7 +1499,7 @@ You are an implementation coach, and your role is to guide me through creating a
 
 Blue Ocean Shift
 
-Blue Ocean Shift by W. Chan Kim & RenÃ©e Mauborgne',
+Blue Ocean Shift by W. Chan Kim & Renée Mauborgne',
   '["Team roles and expertise.?","Resource availability and costs.?","“Are these the right phases?","“Is coverage complete?","“Is timing realistic?","“Are allocations sufficient?","“Ready to launch execution, or any tweaks?"]'::jsonb,
   '[]'::jsonb,
   '["innovation","finance"]'::jsonb,
