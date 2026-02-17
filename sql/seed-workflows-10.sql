@@ -1,6 +1,3 @@
--- Batch 10/24: workflows 226-250
--- Paste this into Supabase SQL Editor and click Run
-
 INSERT INTO workflows (domain, sub_domain, source_book, name, task_summary, full_prompt, key_questions, problem_patterns, synergy_triggers, complexity, embedding)
 VALUES (
   'sales',

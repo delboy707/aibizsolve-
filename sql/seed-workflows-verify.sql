@@ -1,6 +1,3 @@
--- Run this AFTER all batches to verify the seed worked
-
--- Total count (should be 583)
 SELECT COUNT(*) AS total_workflows FROM workflows;
 
 -- Count by domain
