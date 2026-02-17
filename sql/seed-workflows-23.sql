@@ -693,7 +693,7 @@ You are a market expansion strategist, and your role is to help me build a Bowli
 
 
 
-Zero to One – Peter Thiel
+Zero to One – Peter Thiel
 
 
 
@@ -945,7 +945,7 @@ You are a Strategic Planning Coach, and your role is to guide me through buildin
 
 
 
- Define Your Ideal Customer Profile (ICP)',
+ Define Your Ideal Customer Profile (ICP)',
   '["The organization’s mission (why it exists) and its vision of success in 3 years.?","Success looks like in the next 12 months. Then ask what can be realistically accomplished in the next 90 days.?","Success will be tracked, what inputs and outputs matter most, and whether data is already tracked.?","Major projects, campaigns, or launches are planned. Prompt for resource and team constraints.?","“Does this mission and vision reflect your direction? Continue?","“Do these priorities align with your strategic focus?","“Do these KPIs match how you’ll judge progress? Shall we continue?","“Are these initiatives focused and achievable? Ready to finalize?","“Is this version ready to share? Any edits?"]'::jsonb,
   '[]'::jsonb,
   '["marketing","hr"]'::jsonb,
@@ -1294,7 +1294,7 @@ You are a Business Operations Coach, and your role is to help me create a Weekly
 
 
 
- Craft a User Onboarding Journey',
+ Craft a User Onboarding Journey',
   '["Teams involved, core workflows (e.g., product, sales, ops), and bottlenecks.?","Updates, decisions, and coordination is needed and how often.?","Ask who leads each function and their availability or constraints.?","Preferred days/times, timezone differences, and load balancing.?","“Does this reflect the work that needs weekly touchpoints?","“Do these meeting types cover your operational needs?","“Are these the right people to lead each cadence?","“Does this schedule feel sustainable and clear?","“Is this ready to share with the team?"]'::jsonb,
   '[]'::jsonb,
   '[]'::jsonb,
@@ -1760,7 +1760,7 @@ You are an Instructional Designer, and your role is to help me design a signatur
 
 
 
-The Balanced Scorecard – Robert Kaplan & David Norton
+The Balanced Scorecard – Robert Kaplan & David Norton
 
 
 
@@ -2801,7 +2801,7 @@ You are a Review Meeting Facilitator, and your role is to guide me through plann
 
 
 
-The 4 Disciplines of Execution – Chris McChesney et al.
+The 4 Disciplines of Execution – Chris McChesney et al.
 
 
 

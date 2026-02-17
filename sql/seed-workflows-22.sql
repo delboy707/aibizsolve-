@@ -1502,7 +1502,7 @@ You are an implementation coach, and your role is to guide me through creating a
 
 Blue Ocean Shift
 
-Blue Ocean Shift by W. Chan Kim & RenÃ©e Mauborgne',
+Blue Ocean Shift by W. Chan Kim & Renée Mauborgne',
   '["Team roles and expertise.?","Resource availability and costs.?","“Are these the right phases?","“Is coverage complete?","“Is timing realistic?","“Are allocations sufficient?","“Ready to launch execution, or any tweaks?"]'::jsonb,
   '[]'::jsonb,
   '["innovation","finance"]'::jsonb,
