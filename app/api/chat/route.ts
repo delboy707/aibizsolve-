@@ -76,13 +76,19 @@ async function searchWorkflows(
 ): Promise<Array<{
   name: string;
   domain: string;
-  task_summary: string;
+  task_summary?: string;
+  full_prompt?: string;
   key_questions: string[];
   similarity: number;
 }>> {
   try {
+    console.log('[Chat] searchWorkflows called with domains:', domains, 'limit:', limit);
+
     const adminSupabase = createAdminClient();
+    console.log('[Chat] Admin Supabase client created successfully');
+
     const problemEmbedding = await generateEmbedding(problem);
+    console.log(`[Chat] Generated embedding with ${problemEmbedding.length} dimensions`);
 
     const { data: workflows, error: searchError } = await adminSupabase.rpc(
       'match_workflows',
@@ -95,14 +101,16 @@ async function searchWorkflows(
     );
 
     if (searchError) {
-      console.error('[Chat] Workflow search error:', searchError);
+      console.error('[Chat] Workflow search RPC error:', JSON.stringify(searchError));
       return [];
     }
 
-    console.log(`[Chat] Found ${workflows?.length || 0} matching workflows`);
+    console.log(`[Chat] Found ${workflows?.length || 0} matching workflows:`,
+      workflows?.map((w: { name: string; similarity: number }) => `${w.name} (${(w.similarity * 100).toFixed(0)}%)`));
     return workflows || [];
   } catch (error) {
-    console.error('[Chat] Error in workflow search:', error);
+    console.error('[Chat] CRITICAL: Workflow search failed completely:', error instanceof Error ? error.message : String(error));
+    console.error('[Chat] Stack:', error instanceof Error ? error.stack : 'no stack');
     return [];
   }
 }
@@ -212,7 +220,10 @@ export async function POST(req: NextRequest) {
         workflowContext = '\n\n**RELEVANT STRATEGIC FRAMEWORKS (use to guide your questions):**\n\n';
         workflows.forEach((w, i) => {
           workflowContext += `${i + 1}. ${w.name} (${w.domain})\n`;
-          workflowContext += `   Focus: ${w.task_summary.substring(0, 200)}...\n`;
+          const summary = w.task_summary || w.full_prompt || '';
+          if (summary) {
+            workflowContext += `   Focus: ${summary.substring(0, 200)}...\n`;
+          }
           if (w.key_questions && w.key_questions.length > 0) {
             workflowContext += `   Key questions to explore: ${w.key_questions.slice(0, 2).join('; ')}\n`;
           }

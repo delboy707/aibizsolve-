@@ -22,10 +22,14 @@ async function searchWorkflows(
   similarity: number;
 }>> {
   try {
+    console.log('[DocGen] searchWorkflows called with domains:', domains, 'limit:', limit);
+
     const adminSupabase = createAdminClient();
+    console.log('[DocGen] Admin Supabase client created successfully');
 
     // Generate embedding for the problem
     const problemEmbedding = await generateEmbedding(problem);
+    console.log(`[DocGen] Generated embedding with ${problemEmbedding.length} dimensions`);
 
     // Use the match_workflows function for vector similarity search
     const { data: workflows, error: searchError } = await adminSupabase.rpc(
@@ -39,13 +43,16 @@ async function searchWorkflows(
     );
 
     if (searchError) {
-      console.error('Workflow search error:', searchError);
+      console.error('[DocGen] Workflow search RPC error:', JSON.stringify(searchError));
       return [];
     }
 
+    console.log(`[DocGen] Found ${workflows?.length || 0} matching workflows:`,
+      workflows?.map((w: { name: string; similarity: number }) => `${w.name} (${(w.similarity * 100).toFixed(0)}%)`));
     return workflows || [];
   } catch (error) {
-    console.error('Error in workflow search:', error);
+    console.error('[DocGen] CRITICAL: Workflow search failed completely:', error instanceof Error ? error.message : String(error));
+    console.error('[DocGen] Stack:', error instanceof Error ? error.stack : 'no stack');
     return [];
   }
 }
@@ -272,8 +279,8 @@ export async function POST(req: NextRequest) {
     const workflowsSummary = workflows.length > 0
       ? workflows.map((w, i) =>
           `### Workflow ${i + 1}: ${w.name} (${w.domain})\n` +
-          `**Summary**: ${w.task_summary}\n` +
-          `**Methodology**:\n${w.full_prompt}\n` +
+          `**Summary**: ${w.task_summary || 'Strategic methodology'}\n` +
+          `**Methodology**:\n${w.full_prompt || 'General strategic analysis'}\n` +
           `**Key Questions**: ${(w.key_questions || []).slice(0, 3).join('; ')}\n` +
           `**Similarity**: ${(w.similarity * 100).toFixed(0)}%`
         ).join('\n\n')
