@@ -3,6 +3,9 @@
 -- from workflow search results, causing the entire workflow matching pipeline
 -- to silently fail.
 
+-- Must DROP first because changing the return type is not allowed with CREATE OR REPLACE
+DROP FUNCTION IF EXISTS match_workflows(vector, double precision, integer, text[]);
+
 CREATE OR REPLACE FUNCTION match_workflows(
   query_embedding VECTOR(1536),
   match_threshold FLOAT DEFAULT 0.75,
