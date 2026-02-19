@@ -41,7 +41,15 @@ export async function classifyProblem(problem: string): Promise<ClassificationRe
     jsonText = jsonText.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
   }
 
-  return JSON.parse(jsonText);
+  const result = JSON.parse(jsonText) as ClassificationResult;
+
+  // Normalize domains to lowercase — the classification prompt lists them
+  // capitalized (Strategy, Marketing, etc.) but the workflows table stores
+  // them lowercase. PostgreSQL text matching is case-sensitive.
+  result.primary_domain = (result.primary_domain || '').toLowerCase();
+  result.secondary_domains = (result.secondary_domains || []).map(d => d.toLowerCase());
+
+  return result;
 }
 
 /**

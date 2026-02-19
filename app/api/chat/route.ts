@@ -54,7 +54,12 @@ async function classifyProblem(problem: string): Promise<{
   }
 
   try {
-    return JSON.parse(jsonMatch[0]);
+    const result = JSON.parse(jsonMatch[0]);
+    // Normalize domains to lowercase — classification prompt lists them
+    // capitalized but workflows table stores them lowercase
+    result.primary_domain = (result.primary_domain || '').toLowerCase();
+    result.secondary_domains = (result.secondary_domains || []).map((d: string) => d.toLowerCase());
+    return result;
   } catch (parseError) {
     console.error('[Chat] JSON parse error:', parseError, 'Text:', jsonMatch[0].substring(0, 200));
     return {
@@ -90,19 +95,45 @@ async function searchWorkflows(
     const problemEmbedding = await generateEmbedding(problem);
     console.log(`[Chat] Generated embedding with ${problemEmbedding.length} dimensions`);
 
+    // Normalize domains to lowercase for case-sensitive PostgreSQL matching
+    const normalizedDomains = domains?.map(d => d.toLowerCase());
+
     const { data: workflows, error: searchError } = await adminSupabase.rpc(
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),
-        match_threshold: 0.35, // Lowered from 0.65 - actual similarities are 0.43-0.47
+        match_threshold: 0.35,
         match_count: limit,
-        filter_domains: domains && domains.length > 0 ? domains : null,
+        filter_domains: normalizedDomains && normalizedDomains.length > 0 ? normalizedDomains : null,
       }
     );
 
     if (searchError) {
       console.error('[Chat] Workflow search RPC error:', JSON.stringify(searchError));
       return [];
+    }
+
+    // Fallback: if domain filter returned nothing, retry without filter
+    if ((!workflows || workflows.length === 0) && normalizedDomains && normalizedDomains.length > 0) {
+      console.log('[Chat] No workflows matched with domain filter, retrying without filter...');
+      const { data: fallbackWorkflows, error: fallbackError } = await adminSupabase.rpc(
+        'match_workflows',
+        {
+          query_embedding: JSON.stringify(problemEmbedding),
+          match_threshold: 0.35,
+          match_count: limit,
+          filter_domains: null,
+        }
+      );
+
+      if (fallbackError) {
+        console.error('[Chat] Fallback workflow search error:', JSON.stringify(fallbackError));
+        return [];
+      }
+
+      console.log(`[Chat] Fallback found ${fallbackWorkflows?.length || 0} workflows:`,
+        fallbackWorkflows?.map((w: { name: string; similarity: number }) => `${w.name} (${(w.similarity * 100).toFixed(0)}%)`));
+      return fallbackWorkflows || [];
     }
 
     console.log(`[Chat] Found ${workflows?.length || 0} matching workflows:`,

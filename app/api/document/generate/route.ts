@@ -31,20 +31,46 @@ async function searchWorkflows(
     const problemEmbedding = await generateEmbedding(problem);
     console.log(`[DocGen] Generated embedding with ${problemEmbedding.length} dimensions`);
 
+    // Normalize domains to lowercase for case-sensitive PostgreSQL matching
+    const normalizedDomains = domains?.map(d => d.toLowerCase());
+
     // Use the match_workflows function for vector similarity search
     const { data: workflows, error: searchError } = await adminSupabase.rpc(
       'match_workflows',
       {
         query_embedding: JSON.stringify(problemEmbedding),
-        match_threshold: 0.35, // Lowered from 0.65 - actual similarities are 0.43-0.47
+        match_threshold: 0.35,
         match_count: limit,
-        filter_domains: domains && domains.length > 0 ? domains : null,
+        filter_domains: normalizedDomains && normalizedDomains.length > 0 ? normalizedDomains : null,
       }
     );
 
     if (searchError) {
       console.error('[DocGen] Workflow search RPC error:', JSON.stringify(searchError));
       return [];
+    }
+
+    // Fallback: if domain filter returned nothing, retry without filter
+    if ((!workflows || workflows.length === 0) && normalizedDomains && normalizedDomains.length > 0) {
+      console.log('[DocGen] No workflows matched with domain filter, retrying without filter...');
+      const { data: fallbackWorkflows, error: fallbackError } = await adminSupabase.rpc(
+        'match_workflows',
+        {
+          query_embedding: JSON.stringify(problemEmbedding),
+          match_threshold: 0.35,
+          match_count: limit,
+          filter_domains: null,
+        }
+      );
+
+      if (fallbackError) {
+        console.error('[DocGen] Fallback workflow search error:', JSON.stringify(fallbackError));
+        return [];
+      }
+
+      console.log(`[DocGen] Fallback found ${fallbackWorkflows?.length || 0} workflows:`,
+        fallbackWorkflows?.map((w: { name: string; similarity: number }) => `${w.name} (${(w.similarity * 100).toFixed(0)}%)`));
+      return fallbackWorkflows || [];
     }
 
     console.log(`[DocGen] Found ${workflows?.length || 0} matching workflows:`,
@@ -251,7 +277,7 @@ export async function POST(req: NextRequest) {
 
     // PRIORITY 1.3: Use vector search with cross-domain synergy detection
     console.log('Analyzing cross-domain synergy...');
-    const primaryDomain = (classification.primary_domain || 'strategy') as Domain;
+    const primaryDomain = ((classification.primary_domain || 'strategy').toLowerCase()) as Domain;
     const synergyAnalysis = analyzeCrossDomainSynergy(primaryDomain, fullProblemContext);
     console.log('Synergy analysis:', {
       primary: synergyAnalysis.primaryDomain,
