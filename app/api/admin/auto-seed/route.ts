@@ -11,8 +11,20 @@ function getAdminClient() {
   });
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    // Require ADMIN_SEED_SECRET to prevent unauthorized access
+    const adminSecret = process.env.ADMIN_SEED_SECRET;
+    if (!adminSecret) {
+      return NextResponse.json({ error: 'Admin endpoint disabled' }, { status: 403 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const providedKey = searchParams.get('key') || '';
+    if (providedKey.length === 0 || providedKey !== adminSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const supabase = getAdminClient();
     if (!supabase) {
       return NextResponse.json(

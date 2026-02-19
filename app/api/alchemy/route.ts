@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     const hasAlchemyAccess =
-      (userData?.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at || 0)) ||
+      (userData?.payment_tier === 'trial' && userData.trial_ends_at && new Date() < new Date(userData.trial_ends_at)) ||
       ['average', 'above_average'].includes(userData?.payment_tier || '');
 
     if (!hasAlchemyAccess) {
@@ -97,9 +97,7 @@ export async function POST(req: NextRequest) {
       };
     }
 
-    console.log('Generating Alchemy Layer...');
     const alchemyOutput = await generateAlchemy(alchemyInput);
-    console.log('Alchemy generation complete');
 
     // If decisionId provided, update the document's alchemy content
     if (decisionId) {
@@ -109,7 +107,7 @@ export async function POST(req: NextRequest) {
         .eq('decision_id', decisionId);
 
       if (updateError) {
-        console.error('Error updating document with alchemy:', updateError);
+        // Non-critical: alchemy content still returned even if document update fails
       }
 
       // Mark decision as having alchemy generated
@@ -129,8 +127,7 @@ export async function POST(req: NextRequest) {
         hiddenDriver: alchemyOutput.hiddenDriver,
       },
     });
-  } catch (error) {
-    console.error('Alchemy generation error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to generate Alchemy insights' },
       { status: 500 }

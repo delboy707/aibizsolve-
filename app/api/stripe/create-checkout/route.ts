@@ -14,12 +14,24 @@ export async function POST(req: NextRequest) {
 
     const { amount, segment } = await req.json();
 
-    if (!amount || amount < 10) {
+    const VALID_SEGMENTS = ['solopreneur', 'small_business', 'manager', 'ceo'];
+    const parsedAmount = Number(amount);
+
+    if (!Number.isFinite(parsedAmount) || parsedAmount < 10 || parsedAmount > 10000) {
       return NextResponse.json(
-        { error: 'Amount must be at least $10' },
+        { error: 'Amount must be between $10 and $10,000' },
         { status: 400 }
       );
     }
+
+    if (segment && !VALID_SEGMENTS.includes(segment)) {
+      return NextResponse.json(
+        { error: 'Invalid segment' },
+        { status: 400 }
+      );
+    }
+
+    const validatedAmount = Math.round(parsedAmount);
 
     // Get or create Stripe customer
     const customerId = await getOrCreateStripeCustomer(user.id, user.email || '');
@@ -40,7 +52,7 @@ export async function POST(req: NextRequest) {
             recurring: {
               interval: 'month',
             },
-            unit_amount: amount * 100, // Convert to cents
+            unit_amount: validatedAmount * 100, // Convert to cents
           },
           quantity: 1,
         },
@@ -48,15 +60,14 @@ export async function POST(req: NextRequest) {
       metadata: {
         user_id: user.id,
         segment: segment || 'solopreneur',
-        amount: amount.toString(),
+        amount: validatedAmount.toString(),
       },
       success_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/dashboard?payment=success`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/pricing?payment=cancelled`,
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (error) {
-    console.error('Stripe checkout error:', error);
+  } catch {
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

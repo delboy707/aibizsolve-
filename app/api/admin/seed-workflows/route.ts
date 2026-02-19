@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const ADMIN_SECRET = process.env.ADMIN_SEED_SECRET || 'qep-seed-2024';
+const ADMIN_SECRET = process.env.ADMIN_SEED_SECRET;
+
+if (!ADMIN_SECRET) {
+  console.warn('ADMIN_SEED_SECRET not set — admin seed endpoint disabled');
+}
 
 interface WorkflowRecord {
   name: string;
@@ -29,8 +33,13 @@ function getAdminClient() {
 
 export async function POST(req: NextRequest) {
   try {
+    if (!ADMIN_SECRET) {
+      return NextResponse.json({ error: 'Admin endpoint disabled' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
-    if (searchParams.get('key') !== ADMIN_SECRET) {
+    const providedKey = searchParams.get('key') || '';
+    if (providedKey.length === 0 || providedKey !== ADMIN_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
