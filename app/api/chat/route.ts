@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
 import { CLARIFYING_PROMPT, CLASSIFICATION_PROMPT, SYSTEM_PREAMBLE } from '@/lib/ai/prompts';
 import { generateEmbedding } from '@/lib/ai/openai';

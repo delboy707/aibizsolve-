@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { generateEmbedding } from '@/lib/ai/openai';
 
 export async function POST(req: NextRequest) {
@@ -22,7 +21,7 @@ export async function POST(req: NextRequest) {
     const limit = Math.min(Math.max(1, Number(rawLimit) || 3), 20);
 
     // Use admin client to bypass RLS on shared workflows table
-    const adminSupabase = createAdminClient();
+    const adminSupabase = supabase;
 
     // Generate embedding for the problem
     const problemEmbedding = await generateEmbedding(problem);
