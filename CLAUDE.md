@@ -1,1020 +1,268 @@
-# QEP AISolve — Implementation Guide v3
-
-> **Purpose**: This document provides Claude Code with complete context to build QEP AISolve from scratch. Read this entire file before starting any implementation work.
-
----
-
-## Project Overview
-
-**QEP AISolve** is an AI-powered strategic consulting platform that helps solopreneurs and mid-market companies solve business problems across Strategy, Marketing, Sales, Innovation, Operations, HR, and Finance domains.
-
-**Core Value Proposition**: "Move fast without getting exposed."
-
-**One-liner**: "Like having a top business consultant on speed dial — without the invoice."
-
-**How It Works**:
-1. User describes a business problem (we call this a "Decision")
-2. AI classifies using 4-layer taxonomy (Symptom → Challenge → Domain → Intent)
-3. AI matches to relevant strategic frameworks (invisibly)
-4. AI asks 2-4 clarifying questions (rational + behavioral)
-5. **CALL 1**: AI generates McKinsey-style SCQA strategic document with 90-day roadmap
-6. **CALL 2**: AI generates Alchemy Layer (counterintuitive options) — runs in parallel
-
-**Critical Principles**:
-- Users NEVER see framework names, book titles, or methodology sources ("invisible workflow architecture")
-- The Alchemy Layer differentiates us — counterintuitive options competitors won't consider
-- PWYW pricing demonstrates our philosophy: "We're so confident in unconventional thinking, we practice it ourselves"
-
----
-
-## Technical Stack
-
-| Layer | Technology | Purpose |
-|-------|------------|---------|
-| Frontend | Next.js 14+ (App Router) | React framework with Server Components |
-| Styling | Tailwind CSS | Utility-first CSS with custom design tokens |
-| Database | Supabase (PostgreSQL) | Auth, database, row-level security |
-| Vector Search | pgvector | Semantic search for workflow matching |
-| AI Engine | Claude API (Anthropic) | Haiku for classification, Sonnet for synthesis |
-| Embeddings | OpenAI text-embedding-3-small | 1536-dim vectors for workflow matching |
-| Payments | Stripe | PWYW with minimum + segment anchors |
-| Deployment | Vercel | Hosting with automatic deployments |
-
----
-
-## The Alchemy Layer Architecture
-
-### Why It Exists
-
-CEOs and senior managers have heard all the standard consulting advice. The rational answer is table stakes. The counterintuitive option is what makes them forward the document to their board.
-
-Rory Sutherland's insight: "The opposite of a good idea can also be a good idea." Most business problems are solved with the wrong tools because we default to rational frameworks when human behavior is driven by psychology, perception, and emotion.
-
-### Architecture: Option C (Separate Parallel Call)
-
-```
-User Problem
-     │
-     ▼
-┌─────────────────────────────────────────────────────────────┐
-│  CLASSIFICATION (Haiku)                                      │
-│  4-layer taxonomy + cross-domain synergy detection           │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-              ┌───────────────┴───────────────┐
-              │                               │
-              ▼                               ▼
-┌─────────────────────────┐     ┌─────────────────────────┐
-│  CALL 1: Core Workflow  │     │  CALL 2: Alchemy Layer  │
-│  (Sonnet)               │     │  (Sonnet) - PARALLEL    │
-│                         │     │                         │
-│  Input: Problem +       │     │  Input: Problem +       │
-│         Workflows       │     │         Classification  │
-│                         │     │                         │
-│  Output: SCQA Document  │     │  Output: Alchemy Section│
-│  (7 sections)           │     │  (4 lenses)             │
-└───────────┬─────────────┘     └───────────┬─────────────┘
-            │                               │
-            └───────────────┬───────────────┘
-                            │
-                            ▼
-              ┌─────────────────────────────┐
-              │  MERGED FINAL DOCUMENT      │
-              │  SCQA + Alchemy Section     │
-              │  (8 sections total)         │
-              └─────────────────────────────┘
-```
-
-### Why Parallel Calls
-
-| Benefit | Impact |
-|---------|--------|
-| **Modularity** | Toggle Alchemy on/off per tier |
-| **Freemium lever** | Alchemy = premium feature |
-| **Iteration speed** | Improve alchemy prompts without touching 1,500 workflows |
-| **Failure isolation** | If alchemy fails, rational output stays intact |
-| **UX possibilities** | Show rational fast, then "Generating counterintuitive options..." |
-| **A/B testing** | Test alchemy variations independently |
-
-### Cost Impact
+CLAUDE.md — QEP AI Solve Agent Operating Manual
 
-- Call 1 (SCQA): ~$0.18/query
-- Call 2 (Alchemy): ~$0.07-0.10/query
-- **Total**: ~$0.25-0.28/query
-- Still profitable with PWYW minimum of $10/month
+Project: QEP AI Solve — AI-powered strategy consulting replacement
+Stack: React · Supabase (Auth, Database, 583 Workflows, Edge Functions) · Claude AI API · Vercel
+Methodology: SCQA Framework + 583 Domain-Specific Workflows + Claude AI + Alchemy Layer
+Live URL: qep-aisolve.vercel.app
+GitHub: github.com/delboy707/aibizsolve-
+Target Users: Mid-sized company CEOs and their teams who need strategy consulting but can't justify £10K+ fees
+Pricing: Pay-what-you-want ($10 min, $50-150 typical), 28-day free trial
+Last updated: February 2026
 
----
 
-## The Four Alchemy Lenses
+IDENTITY & PURPOSE
+QEP AI Solve is a B2B SaaS application that replaces traditional strategy consulting engagements (typically £10K+) with AI-powered strategic document generation. The app's power comes from THREE interconnected systems working together:
 
-### Lens Definitions
+583 Supabase Workflows — Domain-specific, structured analytical workflows stored in Supabase that encode 30+ years of consulting methodology across 7 business domains. These are NOT generic prompts — they are the codified expertise of a senior consultant who has worked across 80+ countries.
+Claude AI — Provides the natural language understanding, reasoning, and document generation capability. Claude interprets the user's business problem, processes it through the relevant workflows, and generates the strategic output.
+The Alchemy Layer — A proprietary behavioural economics and counterintuitive insight layer that adds depth beyond conventional strategy analysis. This is what makes the output feel like senior consultant work, not a chatbot response.
 
-| Lens | Question It Asks | Example Output |
-|------|------------------|----------------|
-| **The Opposite Lens** | "What if we did the exact reverse of the obvious solution?" | "Instead of discounting to attract customers, raise prices and add exclusivity signals" |
-| **The Perception Lens** | "How could we change how this FEELS rather than what it IS?" | "Uber didn't make cars faster, just showed the map — what's our equivalent?" |
-| **The Signal Lens** | "What would make this feel more valuable without changing substance?" | "Expensive packaging signals importance through visible waste" |
-| **The Small Bet Lens** | "What micro-intervention under $10K might have outsized impact?" | "4 words added to a telemarketing script doubled conversions" |
+All three systems must work together. If the 583 workflows aren't being called, the output is generic AI — not the product. If Claude AI isn't connected, there's no generation. If the Alchemy Layer is missing, the documents lack the differentiator.
 
-### Alchemy Layer Prompt
+ABSOLUTE RULES — NEVER VIOLATE THESE
+1. The Three-System Pipeline Must Work End-to-End
 
-```typescript
-export const ALCHEMY_PROMPT = `You are a behavioral strategist trained in Rory Sutherland's "Alchemy" methodology. You've just reviewed a rational strategic recommendation.
+The complete pipeline: User describes problem → App identifies relevant workflows from the 583 → Claude AI processes through those workflows → Alchemy Layer adds behavioural insights → SCQA document generated
+All three systems must fire in sequence. A document generated without the Supabase workflows is just generic Claude output. A document without the Alchemy Layer is standard SCQA. Neither is the product.
+Before committing ANY change, verify this full pipeline: submit a test problem, confirm the relevant workflows are retrieved from Supabase, confirm Claude AI processes them, confirm the Alchemy Layer appears in the output.
+If any of the three systems breaks, this is P0 — drop everything else and fix it.
 
-Your job: Generate counterintuitive options the client hasn't considered.
+2. The 583 Supabase Workflows Are Sacred
 
-INPUT:
-- Original Problem: {problem}
-- Domain(s): {domains}
-- Classified Intent: {intent}
-- Key Challenges: {challenges}
+These 583 workflows represent 30+ years of consulting methodology. They are the app's core intellectual property.
+NEVER delete, modify, or restructure existing workflows without explicit owner approval.
+NEVER replace workflow logic with generic Claude AI prompts. The workflows exist precisely because they encode domain-specific expertise that generic AI cannot replicate.
+When adding new workflows: follow the existing structure and naming conventions. New workflows must be reviewed by the owner before deployment.
+Workflow retrieval logic must be accurate. When a user submits a problem about marketing, the app must pull the relevant marketing workflows — not strategy workflows or random ones. Mis-routing a problem to the wrong workflow set produces wrong advice.
+Document which workflows are being called for any given user input. If there's a bug in the output, the first diagnostic step is: were the RIGHT workflows selected?
 
-Apply these four lenses:
+3. Claude AI Integration Must Be Maintained
 
-1. THE OPPOSITE LENS
-   "What if we did the exact reverse of the obvious solution?"
-   Look for cases where the opposite approach might work better.
-   
-2. THE PERCEPTION LENS  
-   "How could we change how this FEELS rather than what it IS?"
-   Reference: Uber didn't make cars faster, just showed the map.
-   What perception shift could solve this without changing substance?
-
-3. THE SIGNAL LENS
-   "What would make this feel more valuable/trustworthy without changing the substance?"
-   Reference: Expensive wedding invitations signal importance through visible "waste."
-   What signals could be added or changed?
-
-4. THE SMALL BET LENS
-   "What micro-intervention under $10K might have outsized impact?"
-   Reference: Adding 4 words to a script doubled conversions.
-   What tiny contextual tweak might have outsized results?
-
-OUTPUT FORMAT (use exactly this structure):
-
-## Counterintuitive Options
-[2-3 specific alternatives that challenge conventional thinking. Each should be concrete and actionable, not vague.]
-
-## The Perception Play  
-[One specific way to reframe or change perception without changing substance. Be specific about what to do.]
-
-## Small Bet, Big Signal
-[One low-cost (<$10K), high-impact intervention. Include estimated cost and expected impact.]
-
-## The Hidden Driver
-[What this problem is REALLY about psychologically — the unspoken motivation or fear beneath the stated problem. 2-3 sentences max.]
-
-RULES:
-- Be specific and actionable, not generic
-- Each option should feel surprising but logical once explained
-- Never use consulting jargon
-- Write as if advising a smart CEO who's heard all the standard advice`;
-```
-
----
-
-## Enhanced Problem Intake
-
-### Dual-Track Questions
-
-Add behavioral questions alongside rational ones during clarification:
-
-| Rational Questions (Current) | Behavioral Questions (Add) |
-|------------------------------|---------------------------|
-| "What business challenge are you facing?" | "What do your customers/employees *say* they want vs what they *actually do*?" |
-| "What have you tried so far?" | "What's the *opposite* of what you've tried?" |
-| "What outcome are you looking for?" | "What *feeling* are you trying to create in customers/employees/stakeholders?" |
-| "What constraints do you have?" | "What would you do if you had to solve this with zero budget?" |
-
-### Implementation
-
-The clarifying questions prompt should include both tracks:
-
-```typescript
-export const CLARIFYING_PROMPT = `Based on the user's problem, ask 2-4 clarifying questions.
-
-Include a MIX of:
-- Rational questions (metrics, constraints, timeline, resources)
-- Behavioral questions (perceptions, feelings, opposites, what people say vs do)
-
-The behavioral questions help surface the psychological reality beneath the stated problem.
-
-Example behavioral questions:
-- "What do your customers SAY they want vs what they ACTUALLY do?"
-- "What's the opposite of what you've tried?"
-- "What feeling are you trying to create?"
-- "If you had to solve this with zero budget, what would you try?"
-
-Ask questions naturally in conversation, not as a numbered list.`;
-```
-
----
-
-## Document Output Structure (8 Sections)
-
-### Full Document Structure
-
-```
-STRATEGIC DOCUMENT
-│
-├── 1. EXECUTIVE SUMMARY (SCQA)
-│   ├── Situation: Current state facts
-│   ├── Complication: What changed/threatens
-│   ├── Question: Strategic question to answer
-│   └── Answer: Recommendation in one sentence
-│
-├── 2. SITUATION ANALYSIS
-│   ├── Market context
-│   ├── Competitive landscape
-│   └── Internal assessment
-│
-├── 3. PROBLEM DIAGNOSIS
-│   ├── Root cause analysis
-│   ├── Assumption validation
-│   └── Impact quantification
-│
-├── 4. STRATEGIC OPTIONS (3 alternatives)
-│   ├── Option A: Description, pros, cons, resources
-│   ├── Option B: Description, pros, cons, resources
-│   ├── Option C: Description, pros, cons, resources
-│   └── Comparison table with recommendation
-│
-├── 5. RECOMMENDATION
-│   ├── Clear direction
-│   ├── Rationale
-│   └── Expected outcomes with metrics
-│
-├── 6. IMPLEMENTATION ROADMAP (30-60-90 Day)
-│   ├── Days 1-30: Foundation + Quick wins
-│   ├── Days 31-60: Build momentum
-│   └── Days 61-90: Scale & optimize
-│
-├── 7. RISK MITIGATION
-│   ├── Top 3-5 risks with probability/impact
-│   ├── Mitigation strategies
-│   └── Early warning signals
-│
-└── 8. ALCHEMY SECTION (Premium) ← NEW
-    ├── Counterintuitive Options (2-3)
-    ├── The Perception Play
-    ├── Small Bet, Big Signal
-    └── The Hidden Driver
-```
-
-### Section 8: Alchemy Section Specification
-
-This section is generated by Call 2 (parallel) and appended to the document.
-
-**Display Logic**:
-- Free tier: Show teaser "Unlock counterintuitive options with Pro"
-- Paid tier (above-average PWYW): Full Alchemy Section
-
-**Styling**:
-- Visual separator before section
-- Different background color (subtle highlight)
-- Icon or badge indicating "Behavioral Insights"
-
----
-
-## Design System
-
-### Colors
-```javascript
-const colors = {
-  // Primary
-  navy: {
-    primary: '#1A365D',    // Main brand color
-    light: '#2C5282',      // Secondary actions
-    dark: '#1A202C',       // Text on light backgrounds
-  },
-  // Neutrals
-  slate: {
-    50: '#F7FAFC',         // Backgrounds
-    100: '#EDF2F7',        // Cards
-    200: '#E2E8F0',        // Borders
-    600: '#718096',        // Secondary text
-    800: '#2D3748',        // Primary text
-  },
-  // Semantic
-  success: '#2F855A',
-  warning: '#D69E2E',
-  error: '#C53030',
-  // Alchemy Section
-  alchemy: {
-    bg: '#FDF6E3',         // Warm highlight background
-    border: '#D69E2E',     // Amber accent
-  },
-}
-```
-
-### Typography
-```javascript
-// Font: Inter (Google Fonts)
-const typography = {
-  h1: 'text-4xl font-bold',      // 36px
-  h2: 'text-2xl font-semibold',  // 24px
-  h3: 'text-xl font-semibold',   // 20px
-  body: 'text-base',              // 16px
-  small: 'text-sm',               // 14px
-}
-```
-
-### Brand Voice: "The Confident Expert"
-
-**Personality Sliders** (NN/g framework):
-
-| Dimension | Setting | Description |
-|-----------|---------|-------------|
-| Humor | Low-medium | Dry, occasional, never meme-y |
-| Formality | Medium | Plain business English, not corporate jargon |
-| Respectfulness | High | Challenges decisions, not user's competence |
-| Enthusiasm | Medium | Calm confidence, not hype |
-
-**Voice Rules**:
-- Prefer short, direct sentences
-- Use specific verbs: "cut", "test", "ship", "hire", "drop"
-- Avoid: "leverage synergies", "unlock value", "holistic solution"
-- Call out contradictions directly but respectfully
-- Translate fluffy goals into measurable ones
-
-**Copy Package**:
-- **Headline**: "Move fast without getting exposed."
-- **Subhead**: "From messy business question to board-ready strategic plan — with the rationale, risks, and unconventional options already mapped out. In 20 minutes."
-- **One-liner**: "Like having a top business consultant on speed dial — without the invoice."
-- **Offer**: "28 days free. Then pay what it's worth — $10 minimum, most pay $50-150/month."
-
----
-
-## PWYW Pricing Model
-
-### Replacing Fixed Tiers
-
-Instead of Free/Pro ($29) tiers, implement Pay What You Want:
-
-| Phase | Duration | Access |
-|-------|----------|--------|
-| **Free Trial** | 28 days | Full access (SCQA + Alchemy) |
-| **PWYW** | Ongoing | $10 minimum, no maximum |
-
-### Segment Anchors
-
-Display at payment moment:
-```
-"What do others like you pay?"
-
-• Solopreneurs: $15-45/month
-• Small business owners: $50-150/month  
-• Senior managers: $100-250/month
-• CEOs/Founders: $200-500/month
-
-What feels right for the value you received? [$___]
-```
-
-### "Beat the Average" Unlock
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  YOUR PAYMENT: $35/month                                     │
-│  CURRENT AVERAGE: $47/month                                  │
-│                                                              │
-│  ⚡ Pay $12 more to unlock:                                  │
-│     • Counterintuitive Options section                       │
-│     • "What would Rory do?" behavioral alternatives          │
-│     • Small Bets, Big Signals recommendations                │
-│                                                              │
-│  [Keep at $35]  [Upgrade to $47]  [I'll pay more: $___]     │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Database Schema for PWYW
-
-```sql
--- Users table updated for PWYW
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  -- PWYW fields
-  monthly_payment DECIMAL(10,2) DEFAULT 0,
-  payment_tier TEXT DEFAULT 'trial' CHECK (payment_tier IN ('trial', 'below_average', 'average', 'above_average')),
-  trial_ends_at TIMESTAMPTZ,
-  -- Usage tracking
-  monthly_queries_used INTEGER DEFAULT 0,
-  queries_reset_at TIMESTAMPTZ DEFAULT NOW(),
-  -- Stripe
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Track average payment for anchoring
-CREATE TABLE payment_stats (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  segment TEXT NOT NULL, -- 'solopreneur', 'small_business', 'manager', 'ceo'
-  average_payment DECIMAL(10,2) NOT NULL,
-  payment_count INTEGER NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-```
-
-### Alchemy Access Logic
-
-```typescript
-function hasAlchemyAccess(user: User): boolean {
-  // Trial users get full access
-  if (user.payment_tier === 'trial' && new Date() < user.trial_ends_at) {
-    return true;
-  }
-  
-  // Post-trial: only average and above get Alchemy
-  return ['average', 'above_average'].includes(user.payment_tier);
-}
-```
-
----
-
-## Problem Classification System
-
-### 4-Layer Taxonomy
-
-| Layer | Purpose | Example |
-|-------|---------|---------|
-| **Symptom** | Surface-level user language | "Marketing spend up, revenue flat" |
-| **Challenge** | Underlying business issue | Channel inefficiency, targeting mismatch |
-| **Domain(s)** | Business function(s) involved | Marketing → Sales → Strategy |
-| **Intent** | User's goal state | Explore / Decide / Execute / Monitor |
-
-### Classification Prompt
-
-```typescript
-export const CLASSIFICATION_PROMPT = `You are a business problem classifier. Analyze the user's problem and classify it using this 4-layer taxonomy.
-
-LAYER 1 - SYMPTOMS (surface-level user language):
-- Growth: revenue flat, not growing, lost market share
-- Efficiency: costs high, taking too long, can't keep up
-- People: can't hire, high turnover, team underperforming
-- Market: competitors winning, customers leaving, not differentiated
-- Financial: not profitable, cash flow issues, margins shrinking
-
-LAYER 2 - CHALLENGES (root causes):
-- Channel inefficiency, targeting mismatch, value prop unclear
-- Employer brand weak, compensation misaligned
-- Differentiation gap, speed disadvantage
-- Process inefficiency, scale disadvantages
-- Culture misalignment, management gaps
-
-LAYER 3 - DOMAINS:
-- Strategy, Marketing, Sales, Operations, Innovation, HR, Finance
-
-LAYER 4 - INTENT:
-- Explore: understand options (analysis-heavy output)
-- Decide: choose between alternatives (recommendation-focused)
-- Execute: implement a path (action-heavy, detailed roadmap)
-- Monitor: track progress (metrics-focused)
-
-Respond in JSON:
-{
-  "symptoms": ["symptom1", "symptom2"],
-  "challenges": ["challenge1", "challenge2"],
-  "primary_domain": "domain",
-  "secondary_domains": ["domain1", "domain2"],
-  "intent": "decide",
-  "confidence": 0.85,
-  "clarifying_question": null
-}`;
-```
-
----
-
-## Cross-Domain Synergy Detection
-
-### Synergy Matrix
-
-| Primary | Secondary 1 | Secondary 2 | Secondary 3 |
-|---------|------------|-------------|-------------|
-| Strategy | Marketing | Finance | Innovation |
-| Marketing | Sales | Strategy | Operations |
-| Sales | Marketing | Operations | Finance |
-| Operations | Finance | HR | Sales |
-| Innovation | Strategy | Marketing | Operations |
-| HR | Operations | Finance | Strategy |
-| Finance | Operations | Strategy | Sales |
-
-### Multi-Domain Patterns
-
-**Growth Problem** (Strategy + Marketing + Sales + HR):
-```
-Signal: "We need to grow faster"
-1. Strategy: Growth lever identification
-2. Marketing: Demand generation assessment
-3. Sales: Capacity and conversion analysis
-4. HR: Scaling plan if capacity constrained
-```
-
----
-
-## File Structure
-
-```
-qep-aisolve/
-├── app/
-│   ├── page.tsx                    # Landing page (new copy)
-│   ├── layout.tsx                  # Root layout with providers
-│   ├── globals.css                 # Tailwind + custom styles
-│   ├── auth/
-│   │   └── page.tsx                # Sign up / Sign in
-│   ├── chat/
-│   │   ├── page.tsx                # New decision session
-│   │   └── [decisionId]/
-│   │       └── page.tsx            # Existing decision
-│   ├── document/
-│   │   └── [decisionId]/
-│   │       └── page.tsx            # View generated document
-│   ├── dashboard/
-│   │   └── page.tsx                # Decision history
-│   ├── pricing/
-│   │   └── page.tsx                # PWYW payment page
-│   └── api/
-│       ├── chat/
-│       │   └── route.ts            # Streaming chat endpoint
-│       ├── classify/
-│       │   └── route.ts            # 4-layer classification
-│       ├── alchemy/
-│       │   └── route.ts            # Alchemy Layer generation
-│       ├── decision/
-│       │   └── route.ts            # Create/get decisions
-│       ├── document/
-│       │   └── route.ts            # Generate SCQA document
-│       ├── workflows/
-│       │   └── search/
-│       │       └── route.ts        # Vector search
-│       └── webhooks/
-│           └── stripe/
-│               └── route.ts        # PWYW subscription events
-├── components/
-│   ├── ui/                         # Reusable UI components
-│   ├── chat/
-│   │   ├── ChatInterface.tsx
-│   │   ├── MessageList.tsx
-│   │   ├── MessageInput.tsx
-│   │   ├── ExamplePrompts.tsx
-│   │   └── ProgressIndicator.tsx
-│   ├── document/
-│   │   ├── DocumentView.tsx
-│   │   ├── SCQASection.tsx
-│   │   ├── RoadmapTable.tsx
-│   │   └── AlchemySection.tsx      # NEW: Alchemy display
-│   ├── pricing/
-│   │   ├── PWYWSlider.tsx          # NEW: Payment slider
-│   │   ├── SegmentAnchors.tsx      # NEW: "What others pay"
-│   │   └── BeatTheAverage.tsx      # NEW: Upgrade prompt
-│   ├── dashboard/
-│   │   ├── DecisionList.tsx
-│   │   └── DecisionCard.tsx
-│   └── layout/
-│       ├── Header.tsx
-│       └── Navigation.tsx
-├── lib/
-│   ├── supabase/
-│   │   ├── client.ts
-│   │   ├── server.ts
-│   │   └── admin.ts
-│   ├── ai/
-│   │   ├── anthropic.ts
-│   │   ├── openai.ts
-│   │   ├── classify.ts
-│   │   ├── synergy.ts
-│   │   ├── synthesize.ts
-│   │   ├── alchemy.ts              # NEW: Alchemy generation
-│   │   └── prompts.ts
-│   ├── stripe/
-│   │   └── client.ts
-│   └── utils/
-│       └── helpers.ts
-├── types/
-│   └── index.ts
-├── supabase/
-│   └── migrations/
-│       ├── 001_initial_schema.sql
-│       ├── 002_workflows_table.sql
-│       ├── 003_rls_policies.sql
-│       └── 004_pwyw_schema.sql     # NEW: PWYW tables
-├── scripts/
-│   ├── parse-workflows.ts
-│   ├── generate-embeddings.ts
-│   └── seed-workflows.ts
-├── skills/
-│   ├── SKILL.md
-│   └── references/
-│       ├── problem-classification.md
-│       ├── workflow-taxonomy.md
-│       ├── cross-domain-synergy.md
-│       └── document-structure.md
-└── public/
-```
-
----
-
-## Database Schema
-
-### 001_initial_schema.sql
-
-```sql
--- Enable pgvector extension
-CREATE EXTENSION IF NOT EXISTS vector;
-
--- Users table with PWYW support
-CREATE TABLE users (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  email TEXT NOT NULL,
-  -- PWYW pricing
-  monthly_payment DECIMAL(10,2) DEFAULT 0,
-  payment_tier TEXT DEFAULT 'trial' CHECK (payment_tier IN ('trial', 'below_average', 'average', 'above_average')),
-  user_segment TEXT CHECK (user_segment IN ('solopreneur', 'small_business', 'manager', 'ceo')),
-  trial_ends_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '28 days'),
-  -- Usage
-  monthly_queries_used INTEGER DEFAULT 0,
-  queries_reset_at TIMESTAMPTZ DEFAULT NOW(),
-  -- Stripe
-  stripe_customer_id TEXT,
-  stripe_subscription_id TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Decisions table
-CREATE TABLE decisions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  title TEXT,
-  mode TEXT DEFAULT 'one_shot' CHECK (mode IN ('one_shot', 'companion')),
-  problem_statement TEXT,
-  -- 4-layer classification
-  classified_symptoms JSONB DEFAULT '[]',
-  classified_challenges JSONB DEFAULT '[]',
-  classified_domains JSONB DEFAULT '[]',
-  classified_intent TEXT CHECK (classified_intent IN ('explore', 'decide', 'execute', 'monitor')),
-  classification_confidence FLOAT,
-  -- Workflow matching
-  matched_workflows JSONB DEFAULT '[]',
-  -- Alchemy
-  alchemy_generated BOOLEAN DEFAULT FALSE,
-  -- Status
-  status TEXT DEFAULT 'intake' CHECK (status IN ('intake', 'clarifying', 'processing', 'complete', 'active', 'review_due', 'archived')),
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Messages table
-CREATE TABLE messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  decision_id UUID NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
-  role TEXT NOT NULL CHECK (role IN ('user', 'assistant')),
-  content TEXT NOT NULL,
-  step_label TEXT,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Documents table with Alchemy section
-CREATE TABLE documents (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  decision_id UUID NOT NULL REFERENCES decisions(id) ON DELETE CASCADE,
-  title TEXT,
-  content TEXT NOT NULL,
-  format TEXT DEFAULT 'markdown' CHECK (format IN ('markdown', 'pdf', 'docx')),
-  -- SCQA sections
-  scqa_situation TEXT,
-  scqa_complication TEXT,
-  scqa_question TEXT,
-  scqa_answer TEXT,
-  -- Roadmap
-  roadmap_30 JSONB,
-  roadmap_60 JSONB,
-  roadmap_90 JSONB,
-  -- Alchemy section (separate for access control)
-  alchemy_content JSONB,  -- {counterintuitive, perception_play, small_bet, hidden_driver}
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Payment stats for PWYW anchoring
-CREATE TABLE payment_stats (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  segment TEXT NOT NULL UNIQUE,
-  average_payment DECIMAL(10,2) NOT NULL,
-  median_payment DECIMAL(10,2),
-  payment_count INTEGER NOT NULL DEFAULT 0,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Seed initial payment stats
-INSERT INTO payment_stats (segment, average_payment, median_payment, payment_count) VALUES
-  ('solopreneur', 29.00, 25.00, 0),
-  ('small_business', 79.00, 75.00, 0),
-  ('manager', 149.00, 125.00, 0),
-  ('ceo', 299.00, 250.00, 0);
-
--- Indexes
-CREATE INDEX idx_decisions_user_id ON decisions(user_id);
-CREATE INDEX idx_decisions_status ON decisions(status);
-CREATE INDEX idx_messages_decision_id ON messages(decision_id);
-CREATE INDEX idx_documents_decision_id ON documents(decision_id);
-CREATE INDEX idx_users_payment_tier ON users(payment_tier);
-```
-
-### 002_workflows_table.sql
-
-```sql
--- Workflows table
-CREATE TABLE workflows (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  domain TEXT NOT NULL CHECK (domain IN ('strategy', 'marketing', 'sales', 'innovation', 'operations', 'hr', 'finance')),
-  sub_domain TEXT,
-  source_book TEXT NOT NULL,         -- INTERNAL ONLY
-  name TEXT NOT NULL,
-  task_summary TEXT NOT NULL,
-  full_prompt TEXT NOT NULL,
-  key_questions JSONB DEFAULT '[]',
-  problem_patterns JSONB DEFAULT '[]',
-  synergy_triggers JSONB DEFAULT '[]',
-  complexity TEXT DEFAULT 'medium' CHECK (complexity IN ('low', 'medium', 'high')),
-  estimated_duration_min INTEGER,
-  embedding VECTOR(1536),
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Vector index
-CREATE INDEX idx_workflows_embedding ON workflows 
-  USING hnsw (embedding vector_cosine_ops)
-  WITH (m = 16, ef_construction = 64);
-
-CREATE INDEX idx_workflows_domain ON workflows(domain);
-
--- Vector search function
-CREATE OR REPLACE FUNCTION match_workflows(
-  query_embedding VECTOR(1536),
-  match_threshold FLOAT DEFAULT 0.75,
-  match_count INT DEFAULT 4,
-  filter_domains TEXT[] DEFAULT NULL
-)
-RETURNS TABLE (
-  id UUID,
-  name TEXT,
-  domain TEXT,
-  sub_domain TEXT,
-  full_prompt TEXT,
-  key_questions JSONB,
-  problem_patterns JSONB,
-  synergy_triggers JSONB,
-  similarity FLOAT
-)
-LANGUAGE plpgsql
-AS $$
-BEGIN
-  RETURN QUERY
-  SELECT
-    w.id,
-    w.name,
-    w.domain,
-    w.sub_domain,
-    w.full_prompt,
-    w.key_questions,
-    w.problem_patterns,
-    w.synergy_triggers,
-    1 - (w.embedding <=> query_embedding) AS similarity
-  FROM workflows w
-  WHERE (filter_domains IS NULL OR w.domain = ANY(filter_domains))
-    AND 1 - (w.embedding <=> query_embedding) > match_threshold
-  ORDER BY w.embedding <=> query_embedding
-  LIMIT match_count;
-END;
-$$;
-```
-
----
-
-## Implementation Order
-
-### Sprint 1: Foundation (Week 1-2)
-
-**Tasks**:
-1. Initialize Next.js project with TypeScript
-2. Configure Tailwind with design tokens
-3. Set up Supabase project with PWYW schema
-4. Run database migrations
-5. Implement Supabase Auth
-6. Create basic page layouts with new copy
-7. Copy skill files to `/skills` directory
-
-### Sprint 2: Chat Interface (Week 3-4)
-
-**Tasks**:
-1. Build chat UI components
-2. Implement message streaming
-3. Create example prompts (by problem theme)
-4. Add progress indicators
-5. Implement "Decision" naming and status
-6. Add behavioral questions to intake
-
-### Sprint 3: Workflow Engine (Week 5)
-
-**Tasks**:
-1. Parse .docx workflow files
-2. Extract 4-layer classification metadata
-3. Generate embeddings
-4. Load workflows into Supabase
-5. Implement vector search with domain filtering
-
-### Sprint 4: AI Pipeline + Alchemy (Week 6)
-
-**Tasks**:
-1. Implement 4-layer classification (Haiku)
-2. Build cross-domain synergy detection
-3. Create workflow matching
-4. Implement SCQA synthesis (Sonnet) — Call 1
-5. **Implement Alchemy Layer (Sonnet) — Call 2**
-6. Merge outputs into 8-section document
-
-### Sprint 5: Document & Dashboard (Week 7)
-
-**Tasks**:
-1. Build document view with all 8 sections
-2. **Implement AlchemySection component** with premium styling
-3. Add copy functionality
-4. Create dashboard with decision history
-5. **Add Alchemy teaser for free tier**
-
-### Sprint 6: PWYW Payments & Polish (Week 8)
-
-**Tasks**:
-1. **Build PWYWSlider component**
-2. **Implement SegmentAnchors display**
-3. **Create BeatTheAverage prompt**
-4. Integrate Stripe for variable pricing
-5. Implement payment tier logic
-6. **Gate Alchemy by payment tier**
-7. Final testing
-
----
-
-## API Routes
-
-### /api/alchemy/route.ts (NEW)
-
-```typescript
-import { anthropic } from '@/lib/ai/anthropic';
-import { createClient } from '@/lib/supabase/server';
-import { ALCHEMY_PROMPT } from '@/lib/ai/prompts';
-
-export async function POST(req: Request) {
-  const { decisionId, problem, domains, challenges, intent } = await req.json();
-  const supabase = createClient();
-  
-  // Check user has Alchemy access
-  const { data: { user } } = await supabase.auth.getUser();
-  const { data: userData } = await supabase
-    .from('users')
-    .select('payment_tier, trial_ends_at')
-    .eq('id', user.id)
-    .single();
-  
-  const hasAccess = 
-    (userData.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at)) ||
-    ['average', 'above_average'].includes(userData.payment_tier);
-  
-  if (!hasAccess) {
-    return Response.json({ error: 'Upgrade required for Alchemy insights' }, { status: 403 });
-  }
-  
-  // Generate Alchemy content
-  const prompt = ALCHEMY_PROMPT
-    .replace('{problem}', problem)
-    .replace('{domains}', domains.join(', '))
-    .replace('{challenges}', challenges.join(', '))
-    .replace('{intent}', intent);
-  
-  const response = await anthropic.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000,
-    messages: [{ role: 'user', content: prompt }],
-  });
-  
-  const alchemyContent = response.content[0].text;
-  
-  // Store in document
-  await supabase
-    .from('documents')
-    .update({ alchemy_content: parseAlchemyContent(alchemyContent) })
-    .eq('decision_id', decisionId);
-  
-  await supabase
-    .from('decisions')
-    .update({ alchemy_generated: true })
-    .eq('id', decisionId);
-  
-  return Response.json({ content: alchemyContent });
-}
-
-function parseAlchemyContent(content: string) {
-  // Parse markdown sections into JSON
-  // Returns: { counterintuitive, perception_play, small_bet, hidden_driver }
-  // Implementation details...
-}
-```
-
----
-
-## Testing Checklist
-
-Before deploying, verify:
-
-**Core Flow**:
-- [ ] User can sign up and gets 28-day trial
-- [ ] New decision shows example prompts
-- [ ] Problem intake includes behavioral questions
-- [ ] 4-layer classification works
-- [ ] Cross-domain synergy detects correctly
-- [ ] SCQA document generates (7 sections)
-- [ ] **Alchemy section generates (parallel call)**
-- [ ] **8-section document displays correctly**
-
-**Alchemy Layer**:
-- [ ] **Trial users see full Alchemy section**
-- [ ] **Below-average payers see teaser/upgrade prompt**
-- [ ] **Average+ payers see full Alchemy section**
-- [ ] **Four lenses all populate with specific content**
-
-**PWYW**:
-- [ ] **Segment anchors display correctly**
-- [ ] **Slider works with $10 minimum**
-- [ ] **"Beat the Average" prompt shows at right threshold**
-- [ ] **Stripe creates variable-amount subscription**
-- [ ] **Payment tier updates correctly**
-
-**Polish**:
-- [ ] Landing page has new copy
-- [ ] Dashboard shows decision history
-- [ ] Copy buttons work
-- [ ] Mobile responsive
-
----
-
-## Environment Variables
-
-```bash
-# .env.local
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-SUPABASE_SERVICE_ROLE_KEY=eyJ...
-
-# Anthropic (Claude)
-ANTHROPIC_API_KEY=sk-ant-...
-
-# OpenAI (Embeddings only)
-OPENAI_API_KEY=sk-...
-
-# Stripe (PWYW)
-STRIPE_SECRET_KEY=sk_live_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
-
-# App
-NEXT_PUBLIC_APP_URL=https://qep-aisolve.app
-```
-
----
-
-## Skill Files Reference
-
-The `/skills` directory contains authoritative specifications:
-
-| File | Purpose |
-|------|---------|
-| `SKILL.md` | Master skill description, value pipeline |
-| `references/problem-classification.md` | Complete 4-layer taxonomy |
-| `references/workflow-taxonomy.md` | All 7 domains with sub-domains |
-| `references/cross-domain-synergy.md` | Synergy matrix and triggers |
-| `references/document-structure.md` | Full SCQA format specifications |
-
----
-
-## Summary: What's New in v3
-
-| Feature | Description |
-|---------|-------------|
-| **Alchemy Layer** | Parallel AI call generating counterintuitive options |
-| **Four Lenses** | Opposite, Perception, Signal, Small Bet |
-| **8-Section Document** | SCQA (7) + Alchemy Section |
-| **Behavioral Intake** | Dual-track questions (rational + behavioral) |
-| **PWYW Pricing** | $10 min, segment anchors, beat-the-average |
-| **New Copy** | "Move fast without getting exposed" |
-| **Premium Gating** | Alchemy unlocks for average+ payers |
-
----
-
-## Support
-
-For implementation questions during Claude Code sessions, refer to this document and the skill files in `/skills`. All architectural decisions are documented here.
-
-This is your single source of truth for the QEP AISolve build.
+Claude AI calls must pass through the Supabase workflow context. The system prompt or context for Claude must include the relevant workflow data — Claude should not be generating strategy documents from its general knowledge alone.
+The Claude API model and parameters should not be downgraded without owner approval. Document generation quality depends on model capability.
+Error handling for Claude API failures must be graceful. If the API is down or rate-limited, show the user a clear message — never show a raw error or a blank page.
+API keys must remain server-side (Supabase Edge Functions or Vercel API routes). Never expose the Anthropic API key in client-side code.
+
+4. The Alchemy Layer Must Appear in Every Document
+
+The Alchemy Layer is the product differentiator. It provides:
+
+Behavioural biases that might affect decision-making
+Counterintuitive strategic options that conventional analysis would miss
+Second-order effects and unintended consequences
+Insights drawn from pattern recognition across industries and geographies
+
+
+If a generated document doesn't include an Alchemy Layer section, the pipeline is broken. Check whether the Alchemy prompt/workflow is being included in the Claude API call.
+The Alchemy Layer must NOT feel generic. It should reference specific biases, name specific risks, and offer specific counterintuitive recommendations tied to the user's actual problem.
+
+5. Auth Flow — CTAs Must Route Correctly
+
+Known bug: "Get Started" and "Start Free Trial" buttons route to /auth which shows a Sign In form. New visitors expect Sign Up.
+Correct behaviour:
+
+"Get Started" button → Sign Up form
+"Start Free Trial" button → Sign Up form
+"Sign In" nav link → Sign In form
+
+
+After ANY auth changes, test all paths.
+
+6. Colour System Consistency
+
+Known bug: Some components reference undefined navy-* CSS/Tailwind variables.
+The design system uses a blue/white colour palette. All CTAs and buttons should use the same primary blue.
+Before committing CSS/Tailwind changes: search for any undefined colour variables and resolve them.
+
+7. Deployment & Testing
+
+Run npm run build locally before pushing.
+After git push, wait for Vercel auto-deploy, then test the live site.
+Test the full three-system pipeline after every significant change.
+Test on both desktop and mobile viewports.
+
+
+KNOWN GOTCHAS — THINGS THAT HAVE BROKEN BEFORE
+Supabase Workflow Connectivity (THE #1 RISK)
+
+The most critical concern in this entire app: Are the 583 workflows actually being retrieved and used when a user submits a problem?
+Diagnostic steps:
+
+Check if the frontend queries Supabase for workflows when a problem is submitted
+Check if the correct domain-specific workflows are selected (Strategy problem → Strategy workflows)
+Check if the retrieved workflow data is passed to the Claude AI call
+Check if the Claude API response includes content that clearly came from workflow processing (not just generic AI output)
+
+
+How to tell if workflows aren't connected: The generated document will be generic — it'll read like a ChatGPT response about business strategy rather than structured, methodology-driven analysis. If the document could have been written without any workflow data, the workflows probably weren't used.
+
+Workflow Routing Accuracy
+
+With 583 workflows across 7 domains, routing the user's problem to the correct workflow subset is critical.
+Misrouted problems produce wrong advice. A marketing problem processed through finance workflows will generate irrelevant output.
+The routing logic must consider: primary domain, secondary domains (cross-domain problems), problem specificity (broad strategy vs. narrow tactical), and industry context.
+
+Undefined CSS/Tailwind Variables
+
+Components referencing navy-* variables that don't exist cause silent styling failures.
+Fix: Either add navy-* to tailwind.config.js or replace all references with actual hex values.
+
+Auth Form State
+
+Auth page shows Sign In by default instead of Sign Up when CTAs are clicked.
+
+Landing Page Incompleteness
+
+No footer, no pricing section, no final CTA — page ends abruptly after "How It Works."
+
+
+ARCHITECTURE REFERENCE
+The Three-System Architecture
+┌─────────────────────────────────────────────────────────────────┐
+│                     USER INPUT                                   │
+│            "My SaaS revenue growth has stalled..."               │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              SYSTEM 1: SUPABASE WORKFLOWS (583)                  │
+│                                                                  │
+│  Problem Analysis → Domain Classification → Workflow Selection   │
+│  → Retrieve relevant workflows from the 583 stored in Supabase   │
+│  → Pass structured workflow context to Claude AI                 │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              SYSTEM 2: CLAUDE AI                                 │
+│                                                                  │
+│  Receives: User problem + Selected workflow context              │
+│  Processes: Through SCQA framework guided by workflow steps      │
+│  Generates: Structured strategy document                         │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              SYSTEM 3: ALCHEMY LAYER                             │
+│                                                                  │
+│  Adds: Behavioural economics insights                            │
+│  Adds: Counterintuitive recommendations                          │
+│  Adds: Second-order effects and hidden risks                     │
+│  Adds: Cross-industry pattern recognition                        │
+└─────────────────────┬───────────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              OUTPUT: SCQA STRATEGY DOCUMENT                      │
+│                                                                  │
+│  S — Situation    (informed by workflows)                        │
+│  C — Complication (informed by workflows)                        │
+│  Q — Question     (synthesised from analysis)                    │
+│  A — Answer       (with 90-day roadmap + Alchemy insights)      │
+└─────────────────────────────────────────────────────────────────┘
+7 Business Domains (covered by the 583 workflows)
+1. Strategy       → Business strategy, competitive positioning, market entry
+2. Marketing      → Go-to-market, brand strategy, customer acquisition
+3. Operations     → Process optimisation, supply chain, efficiency
+4. Finance        → Financial planning, cash flow, investment decisions
+5. HR             → Talent strategy, organisational design, culture
+6. Technology     → Digital transformation, tech stack decisions, automation
+7. Sales          → Revenue growth, pipeline optimisation, pricing strategy
+Tech Stack
+Frontend:        React (Next.js)
+Auth:            Supabase Auth
+Database:        Supabase PostgreSQL (stores 583 workflows + user data)
+AI Backend:      Supabase Edge Functions → Claude API
+AI Model:        Claude (via Anthropic API)
+Hosting:         Vercel (auto-deploy from GitHub)
+Styling:         Tailwind CSS (blue/white design system)
+User Flow
+1. Landing page → User reads value prop, sees example documents
+2. Click "Get Started" → Sign Up form
+3. Dashboard → User describes business problem in plain language
+4. App classifies problem domain → selects relevant workflows from 583
+5. App asks 3-5 clarifying questions (informed by workflow requirements)
+6. User answers clarifying questions
+7. Selected workflows + user input + Alchemy prompt → sent to Claude AI
+8. Claude generates SCQA document with Alchemy Layer
+9. Document displayed in-app with download/export options
+10. User can iterate — refine problem, get fresh analysis
+
+NAVIGATION RULES — HOW TO HANDLE COMMON SITUATIONS
+When asked to fix a bug:
+
+Read this CLAUDE.md first
+Verify the three-system pipeline still works (583 Workflows + Claude AI + Alchemy)
+Check for undefined CSS variables if visual
+Test auth flow if touching authentication
+Run npm run build before committing
+
+When asked to modify the AI generation logic:
+
+Map the current pipeline first: Frontend → Supabase workflow query → Edge Function → Claude API call → Response handling
+Verify ALL THREE SYSTEMS are active in the pipeline
+The 583 workflows must be queried and used — not bypassed
+The Alchemy Layer must appear in output
+Test with problems from at least 2 different domains
+Output must read like senior consultant work, not generic AI
+
+When asked to add or modify workflows:
+
+Get owner approval first — these encode proprietary methodology
+Follow existing workflow structure and naming
+Ensure new workflows are correctly tagged to their domain
+Verify the routing logic picks up the new workflows
+Test that the new workflows produce domain-appropriate output
+
+When asked to debug poor document quality:
+
+Check workflow routing — is the right domain being selected?
+Check if workflows are actually being passed to Claude — log the API call payload
+Check if the Alchemy Layer prompt is included
+Check Claude API model/parameters — has anything been downgraded?
+If output reads generic, the workflows probably aren't being used
+
+
+SIGNALS — ADAPTIVE BEHAVIOUR RULES
+SignalResponseOwner says "the AI isn't generating documents"P0. Check: (1) Edge Functions deployed? (2) Frontend calling them? (3) 583 workflows queried from Supabase? (4) Workflows passed to Claude API? (5) Claude returning response? (6) Response rendered?Owner says "documents are generic/weak"The 583 workflows probably aren't being used. Check workflow query and API payload.Owner says "wrong advice for the domain"Workflow routing problem — wrong domain workflows being selected.Owner says "no Alchemy insights"Alchemy Layer prompt missing from Claude API call.Owner reports styling issueCheck for undefined navy-* variables.Owner says "buttons don't work"Check auth routing — CTAs may route to Sign In not Sign Up.Owner mentions "market testing"Run FULL three-system pipeline. Submit a real problem. Verify output includes workflow-driven SCQA AND Alchemy Layer.
+
+QUALITY GATES — CHECKLIST BEFORE ANY COMMIT
+
+ npm run build passes without errors
+ No undefined CSS/Tailwind variables
+ Landing page renders on desktop and mobile
+ "Get Started" routes to Sign Up (not Sign In)
+ If AI-related: test problem submitted → workflows retrieved → Claude generated with workflow context → Alchemy Layer in output
+ If workflow-related: correct domain routing verified for 2+ problem types
+ All buttons use consistent primary blue
+ Footer shows dynamic year
+ No API keys in client-side code
+ Git commit message is descriptive
+
+
+PROHIBITED ACTIONS
+Do NOT do any of the following without explicit owner approval:
+
+Delete, modify, or restructure any of the 583 Supabase workflows
+Bypass the workflow system — send problems to Claude AI without workflow context
+Remove the Alchemy Layer from document generation
+Change the SCQA framework structure
+Change Supabase project configuration or Auth settings
+Modify Vercel environment variables
+Add social proof/testimonials (none exist yet)
+Change pricing model or display text
+Remove any of the 7 business domains
+Expose Supabase service_role key or Anthropic API key in client-side code
+Downgrade Claude AI model without testing quality impact
+
+
+PROJECT HISTORY NOTES
+Critical concerns in priority order:
+
+Three-system connectivity — Are ALL THREE systems (583 workflows + Claude AI + Alchemy Layer) firing when a user submits a problem? This has been uncertain. Every session must verify.
+Workflow routing accuracy — 583 workflows across 7 domains. Wrong routing = wrong advice = damaged credibility.
+Undefined navy-* colour variables — Cascading styling failures.
+Auth flow misdirection — CTAs routing to Sign In not Sign Up.
+Incomplete landing page — Missing footer, pricing, final CTA.
+
+The three-system connectivity is the highest priority. Without all three systems working together, QEP AI Solve is just another chatbot wrapper — not the consulting replacement it's designed to be.
