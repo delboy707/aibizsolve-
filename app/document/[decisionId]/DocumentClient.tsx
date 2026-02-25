@@ -12,10 +12,13 @@ interface DocumentClientProps {
     content: string;
     created_at: string;
   };
-  hasAlchemyAccess: boolean;
+  /** 'full' = show alchemy, 'teased' = blur + upgrade CTA, 'none' = compact banner */
+  alchemyAccess: 'none' | 'teased' | 'full';
+  /** Raw alchemy markdown — populated when alchemyAccess is 'teased' */
+  alchemyRaw?: string;
 }
 
-export default function DocumentClient({ decisionId, document, hasAlchemyAccess }: DocumentClientProps) {
+export default function DocumentClient({ decisionId, document, alchemyAccess, alchemyRaw = '' }: DocumentClientProps) {
   const [activeTab, setActiveTab] = useState<'strategic' | 'alchemy'>('strategic');
   const [mounted, setMounted] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -318,25 +321,28 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
               </button>
 
               <button
-                onClick={() => hasAlchemyAccess && hasAlchemy && setActiveTab('alchemy')}
-                disabled={!hasAlchemyAccess || !hasAlchemy}
+                onClick={() => (alchemyAccess === 'full' ? hasAlchemy : alchemyAccess === 'teased' ? !!alchemyRaw : false) && setActiveTab('alchemy')}
+                disabled={alchemyAccess === 'none' && !hasAlchemy}
                 className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
-                  activeTab === 'alchemy' && hasAlchemyAccess && hasAlchemy
+                  activeTab === 'alchemy'
                     ? 'text-warning border-b-2 border-warning bg-alchemy-bg'
-                    : !hasAlchemyAccess || !hasAlchemy
-                    ? 'text-gray-400 cursor-not-allowed opacity-60 relative'
+                    : alchemyAccess === 'none'
+                    ? 'text-gray-400 cursor-not-allowed opacity-60'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
                 <div className="flex items-center justify-center gap-2">
                   <span>⚗️</span>
                   <span>Alchemy Insights</span>
-                  {(!hasAlchemyAccess || !hasAlchemy) && (
-                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🔒 Premium</span>
+                  {alchemyAccess === 'none' && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">Starter+</span>
+                  )}
+                  {alchemyAccess === 'teased' && (
+                    <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🔒 Pro</span>
                   )}
                 </div>
                 <p className="text-xs mt-1">
-                  {hasAlchemyAccess && hasAlchemy ? 'Counterintuitive Options' : 'Upgrade to unlock'}
+                  {alchemyAccess === 'full' ? 'Counterintuitive Options' : 'Upgrade to unlock'}
                 </p>
               </button>
             </div>
@@ -369,8 +375,31 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                 <div className="prose prose-slate max-w-none">
                   {parseSections(strategicContent, false)}
                 </div>
+
+                {/* Compact Alchemy teaser below strategic doc for non-full tiers */}
+                {alchemyAccess !== 'full' && (
+                  <div className="mt-10 p-5 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-amber-900 text-sm">
+                        ⚗️ Want to see the behavioural curveball?
+                      </p>
+                      <p className="text-amber-700 text-xs mt-0.5">
+                        {alchemyAccess === 'teased'
+                          ? 'Your Alchemy insights are ready — unlock them with Professional.'
+                          : 'Upgrade to Professional to get Behavioural Alchemy in every report.'}
+                      </p>
+                    </div>
+                    <Link
+                      href="/pricing"
+                      className="shrink-0 px-4 py-2 bg-amber-500 text-white text-sm font-semibold rounded-lg hover:bg-amber-600 transition-colors"
+                    >
+                      Upgrade →
+                    </Link>
+                  </div>
+                )}
               </div>
-            ) : hasAlchemyAccess && hasAlchemy ? (
+            ) : alchemyAccess === 'full' && hasAlchemy ? (
+              /* ── FULL: render alchemy content normally ── */
               <div>
                 <div className="mb-6 p-4 bg-alchemy-bg border border-alchemy-border rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
@@ -379,85 +408,87 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                       Alchemy: Counterintuitive Options — Section 8
                     </h3>
                   </div>
-                  <p className="text-sm text-alchemy-text mb-3">
-                    These behavioral insights challenge conventional thinking. Most business problems have a
-                    psychological dimension that rational analysis misses. These counterintuitive options explore what others won't consider.
+                  <p className="text-sm text-alchemy-text">
+                    These behavioral insights challenge conventional thinking — the moves most consultants won&apos;t consider.
                   </p>
-                  <div className="text-xs text-alchemy-text space-y-1">
-                    <p><strong>The Four Lenses:</strong></p>
-                    <ul className="ml-4 space-y-0.5">
-                      <li>• <strong>The Opposite Lens</strong> — What if we did the reverse?</li>
-                      <li>• <strong>The Perception Lens</strong> — Change how it feels, not what it is</li>
-                      <li>• <strong>The Signal Lens</strong> — Make it feel valuable without changing substance</li>
-                      <li>• <strong>The Small Bet Lens</strong> — Low-cost interventions with outsized impact</li>
-                    </ul>
-                    <p className="mt-2 italic">This is what differentiates QEP AISolve from standard consultants.</p>
-                  </div>
                 </div>
-
                 <div className="prose prose-slate max-w-none">
                   {parseSections(alchemyContent, true)}
                 </div>
               </div>
-            ) : (
-              <div className="max-w-2xl mx-auto text-center py-16">
-                <div className="mb-8">
-                  <span className="text-6xl">⚗️</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Unlock Counterintuitive Options
-                </h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  The Alchemy section provides behavioral insights that challenge conventional thinking.
-                  Most consultants give you the rational answer. We give you options they won't consider.
-                </p>
 
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
-                  <h4 className="font-semibold text-amber-900 mb-3">
-                    What You're Missing:
-                  </h4>
-                  <div className="text-left text-sm text-amber-800 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Opposite Lens</strong> — What if we did the exact reverse of the obvious solution?
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Perception Lens</strong> — Change how it feels rather than what it is
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Signal Lens</strong> — Make it feel valuable without changing substance
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Small Bet Lens</strong> — Micro-interventions under $10K with outsized impact
-                      </div>
+            ) : alchemyAccess === 'teased' ? (
+              /* ── TEASED: show headings, blur body, upgrade overlay ── */
+              <div className="relative">
+                <div className="mb-6 p-4 bg-alchemy-bg border border-alchemy-border rounded-xl">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-2xl">⚗️</span>
+                    <h3 className="text-sm font-semibold text-alchemy-text m-0">
+                      Behavioural Alchemy — The Curveball
+                    </h3>
+                  </div>
+                  <p className="text-sm text-alchemy-text">
+                    Counterintuitive insights generated for your problem — locked to Professional and above.
+                  </p>
+                </div>
+
+                {/* Blurred content preview */}
+                <div className="relative overflow-hidden rounded-xl border border-amber-200">
+                  <div className="p-6 select-none" style={{ filter: 'blur(6px)', pointerEvents: 'none' }}>
+                    {/* Extract and show alchemy section headings (### lines) as readable, body blurred */}
+                    {alchemyRaw.split('\n').slice(0, 30).map((line, i) => {
+                      if (line.startsWith('## ') || line.startsWith('### ')) {
+                        return (
+                          <h3 key={i} className="text-base font-bold text-amber-900 mt-4 mb-1">
+                            {line.replace(/^#{2,3}\s/, '')}
+                          </h3>
+                        );
+                      }
+                      return line.trim() ? (
+                        <p key={i} className="text-sm text-gray-700 mb-2">{line}</p>
+                      ) : null;
+                    })}
+                  </div>
+
+                  {/* Upgrade overlay */}
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/60">
+                    <div className="text-center max-w-sm px-6">
+                      <div className="text-4xl mb-3">🔒</div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
+                        Unlock Behavioural Alchemy
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-5">
+                        The counterintuitive options for your specific problem are ready.
+                        Upgrade to Professional to read them.
+                      </p>
+                      <Link
+                        href="/pricing"
+                        className="inline-block px-6 py-3 bg-amber-500 text-white rounded-lg font-semibold hover:bg-amber-600 transition-colors text-sm"
+                      >
+                        Upgrade to Professional ($79/month)
+                      </Link>
                     </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    <strong>Alchemy insights are included for users who pay at or above their segment average.</strong>
-                  </p>
-                  <Link
-                    href="/pricing"
-                    className="inline-block px-8 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold shadow-sm"
-                  >
-                    Upgrade to Unlock Alchemy
-                  </Link>
-                  <p className="text-xs text-gray-500">
-                    Most users pay $50-150/month. You decide what it's worth.
-                  </p>
-                </div>
+            ) : (
+              /* ── NONE (Starter): compact upgrade banner ── */
+              <div className="max-w-2xl mx-auto text-center py-16">
+                <span className="text-5xl">⚗️</span>
+                <h3 className="text-xl font-bold text-gray-900 mt-6 mb-3">
+                  Want to see the behavioural curveball?
+                </h3>
+                <p className="text-gray-600 mb-6 text-sm">
+                  Upgrade to Professional to get Behavioural Alchemy insights in every report —
+                  the counterintuitive moves your competitors won&apos;t consider.
+                </p>
+                <Link
+                  href="/pricing"
+                  className="inline-block px-8 py-3 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors font-semibold"
+                >
+                  Upgrade to Professional →
+                </Link>
               </div>
             )}
           </div>

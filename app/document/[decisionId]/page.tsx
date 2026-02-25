@@ -29,17 +29,16 @@ export default async function DocumentPage({
     redirect('/dashboard');
   }
 
-  // Fetch user data for payment tier
+  // Fetch user's subscription tier
   const { data: userData } = await supabase
     .from('users')
-    .select('payment_tier, trial_ends_at')
+    .select('subscription_tier')
     .eq('id', user.id)
     .single();
 
-  // Check Alchemy access
-  const hasAlchemyAccess =
-    (userData?.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at || 0)) ||
-    ['average', 'above_average'].includes(userData?.payment_tier || '');
+  const { getAlchemyAccess } = await import('@/lib/tiers');
+  const subscriptionTier = ((userData?.subscription_tier as string) || 'free') as Parameters<typeof getAlchemyAccess>[0];
+  const alchemyAccess = getAlchemyAccess(subscriptionTier); // 'none' | 'teased' | 'full'
 
   // Fetch document
   const { data: document } = await supabase
@@ -68,11 +67,15 @@ export default async function DocumentPage({
     );
   }
 
+  // Pass raw alchemy content for the 'teased' state (blur overlay in the client)
+  const alchemyRaw: string = (document.alchemy_content as { raw?: string } | null)?.raw ?? '';
+
   return (
     <DocumentClient
       decisionId={decisionId}
       document={document}
-      hasAlchemyAccess={hasAlchemyAccess}
+      alchemyAccess={alchemyAccess}
+      alchemyRaw={alchemyRaw}
     />
   );
 }

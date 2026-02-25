@@ -152,16 +152,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check user's payment tier for Alchemy access
-    const { data: userData } = await supabase
+    // ── Tier enforcement ────────────────────────────────────────────────────
+    const { data: tierData } = await supabase
       .from('users')
-      .select('payment_tier, trial_ends_at')
+      .select('subscription_tier, reports_used_this_cycle, free_report_used, billing_cycle_start')
       .eq('id', user.id)
       .single();
 
-    const hasAlchemyAccess =
-      (userData?.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at || 0)) ||
-      ['average', 'above_average'].includes(userData?.payment_tier || '');
+    // Reset billing cycle if elapsed (best-effort — don't block on failure)
+    await supabase.rpc('reset_report_count_if_needed', { user_uuid: user.id }).catch(() => {});
+
+    const { canGenerateReport, getAlchemyAccess, canAccessDomain, getDomainUpgradeMessage } =
+      await import('@/lib/tiers');
+
+    const subscriptionTier = ((tierData?.subscription_tier as string) || 'free') as Parameters<typeof canGenerateReport>[0];
+    const reportsUsed = (tierData?.reports_used_this_cycle as number) || 0;
+    const freeReportUsed = (tierData?.free_report_used as boolean) || false;
+
+    if (!canGenerateReport(subscriptionTier, reportsUsed, freeReportUsed)) {
+      return NextResponse.json(
+        { error: 'Report limit reached. Upgrade your plan to generate more reports.', code: 'LIMIT_REACHED' },
+        { status: 403 },
+      );
+    }
+
+    // alchemyMode: 'none' | 'teased' | 'full'
+    const alchemyMode = getAlchemyAccess(subscriptionTier);
+    // Generate alchemy content for both 'full' (merged) and 'teased' (stored separately)
+    const generateAlchemy = alchemyMode !== 'none';
 
     const { decisionId } = await req.json();
 
@@ -249,6 +267,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // ── Domain access check ─────────────────────────────────────────────────
+    const primaryDomainForCheck = classification.primary_domain || 'strategy';
+    if (!canAccessDomain(subscriptionTier, primaryDomainForCheck)) {
+      const upgradeMsg = getDomainUpgradeMessage(subscriptionTier, primaryDomainForCheck);
+      return NextResponse.json(
+        { error: upgradeMsg || `Your plan does not include ${primaryDomainForCheck} analysis.`, code: 'DOMAIN_LOCKED' },
+        { status: 403 },
+      );
+    }
+
     // PRIORITY 1.3: Use vector search with cross-domain synergy detection
     console.log('Analyzing cross-domain synergy...');
     const primaryDomain = (classification.primary_domain || 'strategy') as Domain;
@@ -305,9 +333,9 @@ export async function POST(req: NextRequest) {
       .replace('{workflows}', workflowsSummary)
       .replace('{conversation}', conversationSummary);
 
-    // Prepare Alchemy prompt if user has access (needed for parallel execution)
+    // Prepare Alchemy prompt (generated for 'full' and 'teased'; skipped for 'none')
     const alchemyDomains = [classification.primary_domain, ...classification.secondary_domains].filter(Boolean);
-    const alchemyPrompt = hasAlchemyAccess ? ALCHEMY_PROMPT
+    const alchemyPrompt = generateAlchemy ? ALCHEMY_PROMPT
       .replace('{problem}', fullProblemContext)
       .replace('{domains}', alchemyDomains.length > 0 ? alchemyDomains.join(', ') : 'General Business Strategy')
       .replace('{intent}', classification.intent || 'explore')
@@ -315,7 +343,7 @@ export async function POST(req: NextRequest) {
       : '';
 
     // PARALLEL EXECUTION: Generate SCQA and Alchemy simultaneously
-    console.log('Generating SCQA document' + (hasAlchemyAccess ? ' and Alchemy Layer in parallel...' : '...'));
+    console.log(`Generating SCQA document${generateAlchemy ? ` and Alchemy Layer (mode: ${alchemyMode}) in parallel` : ''}...`);
 
     // Helper to collect streamed response
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -345,8 +373,8 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Start Alchemy generation in parallel (if user has access)
-    const alchemyPromise = hasAlchemyAccess
+    // Start Alchemy generation in parallel (for 'full' and 'teased' modes)
+    const alchemyPromise = generateAlchemy
       ? collectStream(
           await anthropic().messages.stream({
             model: MODELS.OPUS,
@@ -439,27 +467,14 @@ export async function POST(req: NextRequest) {
     const scqaSections = parseSCQA(scqaDocument);
     const roadmapSections = parseRoadmap(scqaDocument);
 
-    // Merge results
+    // Merge results based on alchemy mode:
+    // 'full'   → alchemy merged into document content
+    // 'teased' → alchemy stored in alchemy_content column only (blurred in UI)
+    // 'none'   → no alchemy content
     let fullDocument = scqaDocument;
 
-    if (hasAlchemyAccess && alchemySection) {
+    if (alchemyMode === 'full' && alchemySection) {
       fullDocument = `${scqaDocument}\n\n---\n\n## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemySection}`;
-    } else if (!hasAlchemyAccess) {
-      // Add teaser for users without access
-      const alchemyTeaser = `## 🔒 Unlock Counterintuitive Options
-
-**The Alchemy Layer** provides behavioral and counterintuitive insights that most business consultants won't consider:
-
-- **The Opposite Lens**: What if you did the exact reverse?
-- **The Perception Lens**: How to change how this *feels* rather than what it *is*
-- **The Signal Lens**: Make this feel more valuable without changing substance
-- **The Small Bet Lens**: Micro-interventions under $10K with outsized impact
-
-**Upgrade to unlock**: Beat the average payment for your segment to access these premium insights.
-
-[Visit Pricing](/pricing)`;
-
-      fullDocument = `${scqaDocument}\n\n---\n\n${alchemyTeaser}`;
     }
 
     // Save to database with individual SCQA fields
@@ -479,10 +494,9 @@ export async function POST(req: NextRequest) {
         roadmap_30: roadmapSections.days_30 || null,
         roadmap_60: roadmapSections.days_60 || null,
         roadmap_90: roadmapSections.days_90 || null,
-        // Alchemy content
-        alchemy_content: alchemySection ? {
-          raw: alchemySection,
-        } : null,
+        // Alchemy tracking
+        includes_alchemy: alchemyMode === 'full',
+        alchemy_content: alchemySection ? { raw: alchemySection } : null,
       })
       .select()
       .single();
@@ -497,7 +511,7 @@ export async function POST(req: NextRequest) {
       .from('decisions')
       .update({
         status: 'complete',
-        alchemy_generated: hasAlchemyAccess,
+        alchemy_generated: alchemyMode !== 'none' && !!alchemySection,
         matched_workflows: workflows.map(w => ({
           name: w.name,
           domain: w.domain,
@@ -505,6 +519,17 @@ export async function POST(req: NextRequest) {
         })),
       })
       .eq('id', decisionId);
+
+    // ── Increment report counter ─────────────────────────────────────────────
+    if (subscriptionTier === 'free') {
+      // Free users get exactly one report tracked via free_report_used
+      await supabase.from('users').update({ free_report_used: true }).eq('id', user.id);
+    } else {
+      await supabase
+        .from('users')
+        .update({ reports_used_this_cycle: reportsUsed + 1 })
+        .eq('id', user.id);
+    }
 
     // Send email notification
     try {
