@@ -12,8 +12,13 @@ export const resend = (): Resend => {
   return resendClient;
 };
 
-// Email templates
-export const EMAIL_FROM = 'QEP AISolve <noreply@qep-aisolve.app>';
+// Email from address:
+// - Dev / pre-verification: Resend's shared domain (no domain setup needed)
+// - Production: your verified domain (see EMAIL_SETUP.md)
+export const EMAIL_FROM =
+  process.env.NODE_ENV === 'production'
+    ? 'QEP AISolve <noreply@qep-aisolve.app>'
+    : 'QEP AISolve <onboarding@resend.dev>';
 
 export interface DocumentReadyEmailData {
   userName: string;
