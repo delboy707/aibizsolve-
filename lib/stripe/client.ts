@@ -48,24 +48,3 @@ export async function getOrCreateStripeCustomer(userId: string, email: string) {
   return customer.id;
 }
 
-// Calculate payment tier based on amount vs average
-export function calculatePaymentTier(
-  paymentAmount: number,
-  segmentAverage: number
-): 'trial' | 'below_average' | 'average' | 'above_average' {
-  if (paymentAmount < segmentAverage * 0.9) {
-    return 'below_average';
-  } else if (paymentAmount >= segmentAverage * 0.9 && paymentAmount < segmentAverage * 1.1) {
-    return 'average';
-  } else {
-    return 'above_average';
-  }
-}
-
-// Determine user segment based on heuristics
-export function determineUserSegment(email: string): 'solopreneur' | 'small_business' | 'manager' | 'ceo' {
-  // Simple heuristic - can be improved with user input
-  // For now, default to solopreneur
-  // In production, you'd ask the user during onboarding
-  return 'solopreneur';
-}

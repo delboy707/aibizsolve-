@@ -177,10 +177,24 @@ export default function ChatClient({
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+
+        if (errorData.code === 'LIMIT_REACHED') {
+          window.location.href = '/upgrade';
+          return;
+        }
+
+        if (errorData.code === 'DOMAIN_LOCKED') {
+          alert(errorData.error || 'This domain requires a higher subscription tier. Visit Pricing to upgrade.');
+          setIsGeneratingDocument(false);
+          setGenerationProgress('');
+          return;
+        }
+
         throw new Error('Failed to generate document');
       }
 
-      const data = await response.json();
+      await response.json();
 
       setGenerationProgress('Complete! Redirecting...');
 

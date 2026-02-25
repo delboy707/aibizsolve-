@@ -14,7 +14,13 @@ const TIER_BADGE: Record<TierKey, { label: string; className: string }> = {
   founding_leader: { label: 'Founder', className: 'bg-amber-100 text-amber-700' },
 };
 
-export default async function DashboardPage() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ upgraded?: string }>;
+}) {
+  const { upgraded } = await searchParams;
+  const showUpgradedBanner = upgraded === 'true';
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
@@ -169,6 +175,17 @@ export default async function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Upgrade success banner */}
+        {showUpgradedBanner && (
+          <div className="mb-6 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
+            <span className="text-green-600 text-xl">✓</span>
+            <div className="flex-1">
+              <p className="font-semibold text-green-900 text-sm">You&apos;re now on the {TIERS[subscriptionTier].name} plan</p>
+              <p className="text-sm text-green-800">Your new limits and features are active immediately.</p>
+            </div>
+          </div>
+        )}
+
         {/* Tier + Usage Banner */}
         <UsageAnalytics
           tier={subscriptionTier}

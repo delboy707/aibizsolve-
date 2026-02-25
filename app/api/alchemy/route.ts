@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateAlchemy, AlchemyInput } from '@/lib/ai/alchemy';
+import { getAlchemyAccess } from '@/lib/tiers';
+import type { TierKey } from '@/lib/tiers';
 
 /**
  * POST /api/alchemy
@@ -28,20 +30,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check user's payment tier for Alchemy access
+    // Check user's subscription tier for Alchemy access
     const { data: userData } = await supabase
       .from('users')
-      .select('payment_tier, trial_ends_at')
+      .select('subscription_tier')
       .eq('id', user.id)
       .single();
 
-    const hasAlchemyAccess =
-      (userData?.payment_tier === 'trial' && userData.trial_ends_at && new Date() < new Date(userData.trial_ends_at)) ||
-      ['average', 'above_average'].includes(userData?.payment_tier || '');
+    const tier = ((userData?.subscription_tier as string) || 'free') as TierKey;
+    const alchemyMode = getAlchemyAccess(tier);
 
-    if (!hasAlchemyAccess) {
+    if (alchemyMode !== 'full') {
       return NextResponse.json(
-        { error: 'Upgrade required for Alchemy insights' },
+        { error: 'Upgrade to Professional or Founding Leader to access Alchemy insights' },
         { status: 403 }
       );
     }
