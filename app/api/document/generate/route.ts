@@ -160,7 +160,7 @@ export async function POST(req: NextRequest) {
       .single();
 
     // Reset billing cycle if elapsed (best-effort — don't block on failure)
-    await supabase.rpc('reset_report_count_if_needed', { user_uuid: user.id }).catch(() => {});
+    try { await supabase.rpc('reset_report_count_if_needed', { user_uuid: user.id }); } catch { /* no-op */ }
 
     const { canGenerateReport, getAlchemyAccess, canAccessDomain, getDomainUpgradeMessage } =
       await import('@/lib/tiers');
