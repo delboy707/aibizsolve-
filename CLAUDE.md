@@ -4,6 +4,17 @@
 
 ---
 
+## Standing Rules
+
+**Always provide exact links and prompts.** Never describe steps vaguely. Every instruction that requires the user to visit a URL, run a command, or enter text must include:
+- The **exact URL** (full, copy-pasteable)
+- The **exact command or SQL** to run (in a code block)
+- The **exact value** to enter in any field
+
+No "navigate to the dashboard" — give the link. No "add the env var" — give the exact key and value.
+
+---
+
 ## Project Overview
 
 **QEP AISolve** is an AI-powered strategic consulting platform that helps solopreneurs and mid-market companies solve business problems across Strategy, Marketing, Sales, Innovation, Operations, HR, and Finance domains.
