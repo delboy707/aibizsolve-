@@ -1,152 +1,177 @@
 'use client';
 
 import Link from 'next/link';
+import { TIERS } from '@/lib/tiers';
+import type { TierKey } from '@/lib/tiers';
 
 interface UsageAnalyticsProps {
+  tier: TierKey;
+  reportsUsed: number;
+  freeReportUsed: boolean;
+  canGenerate: boolean;
   analytics: {
     total: number;
     thisMonth: number;
-    last30Days: number;
     completed: number;
     inProgress: number;
     archived: number;
-    mostCommonDomain: string | null;
-    avgGenerationTime: number | null;
   };
-  isTrialActive: boolean;
-  trialDaysRemaining: number;
 }
 
-export function UsageAnalytics({ analytics, isTrialActive, trialDaysRemaining }: UsageAnalyticsProps) {
+export function UsageAnalytics({
+  tier,
+  reportsUsed,
+  freeReportUsed,
+  canGenerate,
+  analytics,
+}: UsageAnalyticsProps) {
+  const tierConfig = TIERS[tier];
+  const isUnlimited = tierConfig.reports_per_month === Infinity;
+  const reportsLimit = tierConfig.reports_per_month as number;
+
+  // Derive usage bar values
+  let usageLabel: string;
+  let usagePercent: number;
+  let barColor: string;
+
+  if (tier === 'free') {
+    if (freeReportUsed) {
+      usageLabel = '1 of 1 free report used';
+      usagePercent = 100;
+      barColor = 'bg-red-500';
+    } else {
+      usageLabel = '0 of 1 free report available';
+      usagePercent = 0;
+      barColor = 'bg-primary-500';
+    }
+  } else if (isUnlimited) {
+    usageLabel = 'Unlimited reports';
+    usagePercent = 0;
+    barColor = 'bg-primary-500';
+  } else {
+    const pct = Math.min(100, Math.round((reportsUsed / reportsLimit) * 100));
+    usageLabel = `${reportsUsed} of ${reportsLimit} reports used this month`;
+    usagePercent = pct;
+    barColor = pct >= 100 ? 'bg-red-500' : pct >= 67 ? 'bg-amber-500' : 'bg-primary-500';
+  }
+
+  const atLimit = !canGenerate;
+
   return (
     <div className="mb-8 space-y-4">
-      {/* Trial Warning Banner */}
-      {isTrialActive && trialDaysRemaining <= 7 && (
-        <div className="bg-amber-50 border-2 border-amber-300 rounded-xl p-6 shadow-sm">
-          <div className="flex items-start gap-3">
-            <span className="text-3xl">⏰</span>
-            <div className="flex-1">
-              <h3 className="font-semibold text-amber-900 mb-2">
-                Trial Ending Soon
-              </h3>
-              <p className="text-sm text-amber-800 mb-3">
-                Your trial ends in <strong>{trialDaysRemaining} day{trialDaysRemaining !== 1 ? 's' : ''}</strong>.
-                Choose a payment plan to continue accessing your strategic documents and insights.
-              </p>
+      {/* Tier + Usage Card */}
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1">
+            {/* Plan name */}
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
+              Current Plan
+            </p>
+            <h3 className="text-lg font-bold text-gray-900 mb-3">{tierConfig.name}</h3>
+
+            {/* Usage bar */}
+            {isUnlimited ? (
+              <p className="text-sm font-medium text-gray-600">{usageLabel}</p>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-sm text-gray-700">{usageLabel}</span>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2 max-w-xs">
+                  <div
+                    className={`h-2 rounded-full transition-all duration-500 ${barColor}`}
+                    style={{ width: usagePercent > 0 ? `${usagePercent}%` : '0%' }}
+                  />
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Upgrade / Manage CTA */}
+          <div className="shrink-0 flex flex-col gap-2">
+            {tier === 'free' && freeReportUsed && (
               <Link
                 href="/pricing"
-                className="inline-block px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-semibold"
+                className="inline-block px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold text-center"
               >
-                Choose Your Plan
+                Upgrade to Continue →
               </Link>
-            </div>
+            )}
+            {tier === 'starter' && atLimit && (
+              <Link
+                href="/pricing"
+                className="inline-block px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-semibold text-center"
+              >
+                Upgrade for Unlimited →
+              </Link>
+            )}
+            {tier === 'starter' && !atLimit && (
+              <Link
+                href="/pricing"
+                className="inline-block px-5 py-2 border border-primary-300 text-primary-700 rounded-lg hover:bg-primary-50 transition-colors text-sm font-medium text-center"
+              >
+                Unlock Behavioural Alchemy →
+              </Link>
+            )}
           </div>
+        </div>
+      </div>
+
+      {/* Contextual alert banners */}
+      {tier === 'free' && freeReportUsed && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-3">
+          <span className="text-lg mt-0.5">⚡</span>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-900 text-sm">You've used your free report</p>
+            <p className="text-sm text-amber-800 mt-0.5">
+              Upgrade to Starter ($29/month) for 3 reports/month, or Professional ($79/month) for unlimited reports with Behavioural Alchemy.
+            </p>
+          </div>
+          <Link
+            href="/pricing"
+            className="shrink-0 text-sm font-semibold text-amber-800 hover:text-amber-900 underline"
+          >
+            See plans
+          </Link>
         </div>
       )}
 
-      {/* Analytics Grid */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
-          <h3 className="text-lg font-semibold text-gray-900">Your Activity</h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Track your strategic decision-making progress
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-4 gap-6 p-6">
-          {/* Total Decisions */}
-          <div className="text-center p-4 bg-primary-50 rounded-lg border border-primary-100">
-            <div className="text-3xl font-bold text-primary-600 mb-1">
-              {analytics.total}
-            </div>
-            <div className="text-sm text-gray-600">Total Decisions</div>
-          </div>
-
-          {/* This Month */}
-          <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
-            <div className="text-3xl font-bold text-blue-600 mb-1">
-              {analytics.thisMonth}
-            </div>
-            <div className="text-sm text-gray-600">This Month</div>
-          </div>
-
-          {/* Completed */}
-          <div className="text-center p-4 bg-green-50 rounded-lg border border-green-100">
-            <div className="text-3xl font-bold text-green-600 mb-1">
-              {analytics.completed}
-            </div>
-            <div className="text-sm text-gray-600">Completed</div>
-          </div>
-
-          {/* In Progress */}
-          <div className="text-center p-4 bg-amber-50 rounded-lg border border-amber-100">
-            <div className="text-3xl font-bold text-amber-600 mb-1">
-              {analytics.inProgress}
-            </div>
-            <div className="text-sm text-gray-600">In Progress</div>
-          </div>
-        </div>
-
-        {/* Insights Row */}
-        {(analytics.mostCommonDomain || analytics.avgGenerationTime) && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
-            <div className="grid md:grid-cols-2 gap-6">
-              {analytics.mostCommonDomain && (
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">Most Common Domain</div>
-                    <div className="font-semibold text-gray-900 capitalize">{analytics.mostCommonDomain}</div>
-                  </div>
-                </div>
-              )}
-
-              {analytics.avgGenerationTime !== null && (
-                <div className="flex items-center gap-3">
-                  <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="text-xs text-gray-500 uppercase tracking-wide">Avg Generation Time</div>
-                    <div className="font-semibold text-gray-900">
-                      {analytics.avgGenerationTime < 60
-                        ? `${analytics.avgGenerationTime} min`
-                        : `${Math.floor(analytics.avgGenerationTime / 60)}h ${analytics.avgGenerationTime % 60}m`
-                      }
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Engagement Message */}
-        {analytics.total > 0 && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-primary-50">
-            <p className="text-sm text-primary-800">
-              {analytics.inProgress > 0 ? (
-                <>
-                  💬 <strong>You have {analytics.inProgress} decision{analytics.inProgress !== 1 ? 's' : ''} in progress.</strong> Continue the conversation or generate your strategic documents.
-                </>
-              ) : analytics.completed > 0 ? (
-                <>
-                  ✨ <strong>Great work!</strong> You've completed {analytics.completed} strategic decision{analytics.completed !== 1 ? 's' : ''}. Ready to tackle another challenge?
-                </>
-              ) : (
-                <>
-                  🚀 <strong>Welcome!</strong> Start your first strategic consultation to get personalized business insights.
-                </>
-              )}
+      {tier === 'starter' && atLimit && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-3">
+          <span className="text-lg mt-0.5">⚡</span>
+          <div className="flex-1">
+            <p className="font-semibold text-amber-900 text-sm">Monthly limit reached</p>
+            <p className="text-sm text-amber-800 mt-0.5">
+              You've used all {reportsLimit} reports this month. Upgrade to Professional for unlimited reports and Behavioural Alchemy insights.
             </p>
           </div>
-        )}
+          <Link
+            href="/pricing"
+            className="shrink-0 text-sm font-semibold text-amber-800 hover:text-amber-900 underline"
+          >
+            Upgrade
+          </Link>
+        </div>
+      )}
+
+      {/* Quick stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-gray-900">{analytics.total}</div>
+          <div className="text-xs text-gray-500 mt-1">Total Reports</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-gray-900">{analytics.thisMonth}</div>
+          <div className="text-xs text-gray-500 mt-1">This Month</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-green-600">{analytics.completed}</div>
+          <div className="text-xs text-gray-500 mt-1">Completed</div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 text-center">
+          <div className="text-2xl font-bold text-amber-600">{analytics.inProgress}</div>
+          <div className="text-xs text-gray-500 mt-1">In Progress</div>
+        </div>
       </div>
     </div>
   );

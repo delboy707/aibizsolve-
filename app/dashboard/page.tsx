@@ -1,50 +1,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { ExampleLibrary } from '@/components/examples/ExampleLibrary';
 import { DecisionsList } from '@/components/dashboard/DecisionsList';
 import { UsageAnalytics } from '@/components/dashboard/UsageAnalytics';
-import type { Decision } from '@/types';
+import { TIERS, canGenerateReport } from '@/lib/tiers';
+import type { TierKey } from '@/lib/tiers';
+import { stripe } from '@/lib/stripe/client';
 
-// Helper functions
-function getMostCommonDomain(decisions: Decision[]): string | null {
-  if (!decisions.length) return null;
-
-  const domainCounts: Record<string, number> = {};
-  decisions.forEach(d => {
-    if (d.classified_domains && d.classified_domains.length > 0) {
-      d.classified_domains.forEach((domain: string) => {
-        domainCounts[domain] = (domainCounts[domain] || 0) + 1;
-      });
-    }
-  });
-
-  const entries = Object.entries(domainCounts);
-  if (entries.length === 0) return null;
-
-  const [mostCommon] = entries.reduce((max, curr) => curr[1] > max[1] ? curr : max);
-  return mostCommon;
-}
-
-function calculateAvgGenerationTime(decisions: Decision[]): number | null {
-  const completedWithTimes = decisions.filter(d => {
-    if (d.status !== 'complete') return false;
-    const created = new Date(d.created_at).getTime();
-    const updated = new Date(d.updated_at).getTime();
-    return updated > created;
-  });
-
-  if (completedWithTimes.length === 0) return null;
-
-  const totalMinutes = completedWithTimes.reduce((sum, d) => {
-    const created = new Date(d.created_at).getTime();
-    const updated = new Date(d.updated_at).getTime();
-    const minutes = (updated - created) / (1000 * 60);
-    return sum + minutes;
-  }, 0);
-
-  return Math.round(totalMinutes / completedWithTimes.length);
-}
+const TIER_BADGE: Record<TierKey, { label: string; className: string }> = {
+  free: { label: 'Free', className: 'bg-gray-100 text-gray-600' },
+  starter: { label: 'Starter', className: 'bg-blue-100 text-blue-700' },
+  professional: { label: 'Pro', className: 'bg-primary-100 text-primary-700' },
+  founding_leader: { label: 'Founder', className: 'bg-amber-100 text-amber-700' },
+};
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -55,12 +23,28 @@ export default async function DashboardPage() {
     redirect('/auth');
   }
 
-  // Fetch user data
+  // Fetch user data with tier fields
   const { data: userData } = await supabase
     .from('users')
-    .select('*')
+    .select('subscription_tier, reports_used_this_cycle, free_report_used, stripe_customer_id')
     .eq('id', user.id)
     .single();
+
+  const subscriptionTier = ((userData?.subscription_tier as string) || 'free') as TierKey;
+  const reportsUsed = userData?.reports_used_this_cycle ?? 0;
+  const freeReportUsed = userData?.free_report_used ?? false;
+  const stripeCustomerId = userData?.stripe_customer_id as string | null;
+  const isPaidUser = subscriptionTier !== 'free';
+
+  const canGenerate = canGenerateReport(subscriptionTier, reportsUsed, freeReportUsed);
+
+  // Route "New Report" based on tier/usage
+  let newReportHref: string;
+  if (subscriptionTier === 'free') {
+    newReportHref = freeReportUsed ? '/upgrade' : '/onboarding';
+  } else {
+    newReportHref = '/chat';
+  }
 
   // Fetch user's decisions
   const { data: decisions } = await supabase
@@ -69,34 +53,46 @@ export default async function DashboardPage() {
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
-  // Calculate analytics
+  // Analytics
   const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-
   const analytics = {
     total: decisions?.length || 0,
     thisMonth: decisions?.filter(d => new Date(d.created_at) >= startOfMonth).length || 0,
-    last30Days: decisions?.filter(d => new Date(d.created_at) >= thirtyDaysAgo).length || 0,
     completed: decisions?.filter(d => d.status === 'complete').length || 0,
     inProgress: decisions?.filter(d => ['intake', 'clarifying', 'processing'].includes(d.status)).length || 0,
     archived: decisions?.filter(d => d.status === 'archived').length || 0,
-    mostCommonDomain: getMostCommonDomain(decisions || []),
-    avgGenerationTime: calculateAvgGenerationTime(decisions || []),
   };
 
-  // Calculate trial days remaining
-  const trialEndsAt = userData?.trial_ends_at ? new Date(userData.trial_ends_at) : null;
-  const trialDaysRemaining = trialEndsAt
-    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
-    : 0;
-  const isTrialActive = userData?.payment_tier === 'trial' && trialDaysRemaining > 0;
+  const badge = TIER_BADGE[subscriptionTier];
 
   const handleSignOut = async () => {
     'use server';
     const supabase = await createClient();
     await supabase.auth.signOut();
     redirect('/');
+  };
+
+  const handleManageSubscription = async () => {
+    'use server';
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { redirect('/auth'); return; }
+
+    const { data: userData } = await supabase
+      .from('users')
+      .select('stripe_customer_id')
+      .eq('id', user.id)
+      .single();
+
+    if (!userData?.stripe_customer_id) { redirect('/pricing'); return; }
+
+    const session = await stripe().billingPortal.sessions.create({
+      customer: userData.stripe_customer_id as string,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+    });
+
+    redirect(session.url);
   };
 
   return (
@@ -113,20 +109,54 @@ export default async function DashboardPage() {
               <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
             </Link>
 
-            {/* Nav Links */}
-            <div className="flex items-center gap-6">
+            {/* Nav */}
+            <div className="flex items-center gap-4">
               <Link
-                href="/pricing"
-                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                href={newReportHref}
+                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
               >
-                Pricing
+                + New Report
               </Link>
-              <div className="flex items-center gap-3 pl-6 border-l border-gray-200">
-                <span className="text-sm text-gray-600">{user.email}</span>
+
+              {!isPaidUser && (
+                <Link
+                  href="/pricing"
+                  className="text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                >
+                  Upgrade
+                </Link>
+              )}
+
+              <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+                {/* Tier badge */}
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${badge.className}`}>
+                  {badge.label}
+                </span>
+
+                <span className="text-sm text-gray-600 hidden sm:block">{user.email}</span>
+
+                {isPaidUser && stripeCustomerId ? (
+                  <form action={handleManageSubscription}>
+                    <button
+                      type="submit"
+                      className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                    >
+                      Manage Plan
+                    </button>
+                  </form>
+                ) : (
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                  >
+                    Pricing
+                  </Link>
+                )}
+
                 <form action={handleSignOut}>
                   <button
                     type="submit"
-                    className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
+                    className="text-sm text-gray-600 hover:text-gray-900 font-medium transition-colors"
                   >
                     Sign Out
                   </button>
@@ -139,115 +169,51 @@ export default async function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Banner - How It Works */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-8 rounded-xl mb-8 text-white shadow-sm">
-          <h2 className="text-2xl font-bold mb-6">How QEP AISolve Works</h2>
-          <div className="grid md:grid-cols-4 gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-3xl">1️⃣</span>
-                <h3 className="font-semibold">Describe Your Problem</h3>
-              </div>
-              <p className="text-sm text-primary-50">Type your business challenge. After you send your first message, you can also upload supporting documents (PDF, DOCX, TXT, CSV)</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-3xl">2️⃣</span>
-                <h3 className="font-semibold">Answer Questions</h3>
-              </div>
-              <p className="text-sm text-primary-50">Our AI will ask 2-4 clarifying questions to understand your context, goals, and constraints</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-3xl">3️⃣</span>
-                <h3 className="font-semibold">Generate Strategic Document</h3>
-              </div>
-              <p className="text-sm text-primary-50">Click "Generate Strategic Document" button after answering questions. Takes ~2 minutes to create your custom analysis</p>
-            </div>
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-3xl">4️⃣</span>
-                <h3 className="font-semibold">Review & Download</h3>
-              </div>
-              <p className="text-sm text-primary-50">Get a comprehensive strategic plan with 30-60-90 day roadmap, risk mitigation, and Alchemy insights (counterintuitive options for average+ subscribers). Download as needed</p>
-            </div>
-          </div>
-        </div>
-
-        {/* User Status */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 mb-8 shadow-sm">
-          <div className="flex justify-between items-start">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">Your Account</h2>
-              <p className="text-gray-700">
-                Status: <span className="font-semibold capitalize text-primary-600">{userData?.payment_tier}</span>
-              </p>
-              {userData?.payment_tier === 'trial' && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Trial ends: {new Date(userData.trial_ends_at).toLocaleDateString()}
-                </p>
-              )}
-              {userData?.monthly_payment && userData.monthly_payment > 0 && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Current payment: ${userData.monthly_payment}/month
-                </p>
-              )}
-            </div>
-            <Link
-              href="/pricing"
-              className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-            >
-              Manage Subscription
-            </Link>
-          </div>
-        </div>
-
-        {/* Usage Analytics */}
+        {/* Tier + Usage Banner */}
         <UsageAnalytics
+          tier={subscriptionTier}
+          reportsUsed={reportsUsed}
+          freeReportUsed={freeReportUsed}
+          canGenerate={canGenerate}
           analytics={analytics}
-          isTrialActive={isTrialActive}
-          trialDaysRemaining={trialDaysRemaining}
         />
 
-        {/* New Decision Button with Instructions */}
-        <div className="mb-8">
-          <div className="flex items-center gap-4">
-            <Link
-              href="/chat"
-              className="inline-flex items-center bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors font-semibold shadow-sm"
-            >
-              + New Decision
-            </Link>
-            <p className="text-sm text-gray-600">
-              Start a new strategic consultation — ask about any business challenge
-            </p>
-          </div>
+        {/* Reports header + CTA */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Your Reports</h2>
+          <Link
+            href={canGenerate ? newReportHref : (isPaidUser ? newReportHref : '/upgrade')}
+            className={`inline-flex items-center px-5 py-2.5 rounded-lg font-semibold text-sm shadow-sm transition-colors ${
+              canGenerate
+                ? 'bg-primary-600 text-white hover:bg-primary-700'
+                : 'bg-gray-200 text-gray-500 cursor-not-allowed pointer-events-none'
+            }`}
+          >
+            + New Report
+          </Link>
         </div>
 
         {/* Decisions List */}
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Your Decisions</h2>
-
-          {decisions && decisions.length > 0 ? (
-            <DecisionsList decisions={decisions} />
-          ) : (
-            <div className="space-y-8">
-              {/* Empty State Message */}
-              <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
-                <p className="text-gray-600 mb-4">No decisions yet</p>
-                <Link
-                  href="/chat"
-                  className="inline-block bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-medium"
-                >
-                  Create Your First Decision
-                </Link>
-              </div>
-
-              {/* Example Library */}
-              <ExampleLibrary ctaHref="/chat" ctaText="Start Your Strategic Analysis" />
-            </div>
-          )}
-        </div>
+        {decisions && decisions.length > 0 ? (
+          <DecisionsList decisions={decisions} />
+        ) : (
+          <div className="bg-white p-12 rounded-xl border border-gray-200 text-center">
+            <p className="text-gray-500 text-lg mb-2">No reports yet</p>
+            <p className="text-sm text-gray-400 mb-6">
+              {subscriptionTier === 'free' && !freeReportUsed
+                ? 'Generate your first free strategic report — no credit card required.'
+                : 'Start a new consultation to get your strategic analysis.'}
+            </p>
+            <Link
+              href={newReportHref}
+              className="inline-block bg-primary-600 text-white px-6 py-2.5 rounded-lg hover:bg-primary-700 transition-colors font-medium"
+            >
+              {subscriptionTier === 'free' && !freeReportUsed
+                ? 'Generate My Free Report →'
+                : '+ New Report'}
+            </Link>
+          </div>
+        )}
       </main>
     </div>
   );
