@@ -1,0 +1,228 @@
+# CLAUDE.md — FRESHLife App Agent Operating Manual
+
+> **Project:** FRESHLife — Faith-based wellness app
+> **Stack:** React (Next.js) · Supabase · Vercel · USDA Food API
+> **Framework:** F.R.E.S.H. = Food, Rest, Exercise, Spirit, Habits
+> **Mission:** "Your body is a temple" (1 Corinthians 6:19) — align health with Christian living
+> **Live URL:** freshlife-app.vercel.app
+> **Last updated:** February 2026
+
+---
+
+## IDENTITY & PURPOSE
+
+You are working on FRESHLife, a B2B/B2C faith-based wellness application serving users who track nutrition, exercise, rest, spiritual practices, and daily habits. The app targets a diverse audience including South African, UK, and US users.
+
+Your role is to be a meticulous, regression-aware development partner. This project has a history of bugs being fixed and then reintroduced, particularly around profile persistence, calorie calculations, and state management. Your primary obligation is to **never reintroduce a previously fixed bug**. When in doubt, check this document first.
+
+---
+
+## ABSOLUTE RULES — NEVER VIOLATE THESE
+
+### 1. Calorie Calculations
+- **ALWAYS divide total recipe calories by the number of servings** before displaying per-portion values. This bug has occurred 8+ times across dinner templates. The pattern: ingredient calories are summed correctly but displayed as the TOTAL instead of per-serving.
+- **Use COOKED weights for grains and pasta, not dry weights.** 600g cooked whole wheat pasta = ~942 calories. 600g DRY whole wheat pasta = ~2040 calories. This distinction has caused incorrect calorie displays. When you see any pasta, rice, or grain ingredient, confirm whether the weight is cooked or dry.
+- **Lean beef mince:** 1kg = 1650 calories (not 2170). This specific value has been wrong before.
+- Before committing ANY change to meal templates or calorie logic, calculate the expected per-portion calories manually and verify your output matches. Show your working.
+
+### 2. Profile Persistence & Onboarding
+- **This is the single most damaging recurring bug.** Users completing onboarding (gender, age, units, height, weight, goals, activity level) get redirected back to re-enter everything. This has been "fixed" four separate times and keeps returning.
+- **Root cause pattern:** The profile completeness check treats "Supabase returned nothing because RLS blocked the read" the same as "user has no profile." These are different conditions and must be handled differently.
+- **NEVER modify Supabase RLS policies on the profiles table without explicit owner approval.** Previous RLS changes broke profile reads for existing users.
+- **The onboarding form must NEVER overwrite existing profile data with null/empty values.** If a field already has a value in Supabase and the incoming form value is empty, keep the existing value.
+- **localStorage backup flag:** The app should set `onboarding_completed = true` in localStorage after successful profile save. Before redirecting to onboarding, check this flag — if it's true AND the Supabase query returned empty, show a loading/retry state, not the onboarding form.
+- **Race condition guard:** On app load, the auth state and profile fetch can race. The profile fetch must WAIT for auth to fully resolve before querying Supabase. Implement a loading state that blocks the completeness check until auth is confirmed.
+
+### 3. State Management & UI Updates
+- **Food log entries must appear immediately after logging** — no hard refresh required. Every write to Supabase must be followed by an optimistic UI update or a re-fetch of the affected state. This has been a persistent bug with meal template logging.
+- **Use React Query or equivalent cache invalidation** for any Supabase mutation. After inserting a food log entry, invalidate the food log query cache so the UI reflects the change instantly.
+- **Never rely on page refresh to show updated data.** If you find yourself thinking "the user can just refresh," stop — that's a bug, not a feature.
+
+### 4. Deployment & Testing
+- **Run the dev server and visually verify your fix before committing.** Use App Preview if available. Do not commit code that you haven't seen working.
+- **Test on both desktop AND a mobile viewport (390px width)** before marking any UI task as complete. Mobile rendering issues (sidebar not collapsing, videos not displaying, layout overflow) have been found repeatedly in production.
+- **Never deploy to Vercel without running the build locally first** (`npm run build` or `next build`). Catch hydration errors and build failures before they hit production.
+- **After fixing a bug, check the 3 most related features** to ensure you haven't broken anything adjacent. Example: fixing calorie display → also verify food log totals, daily summary calories, and weekly averages.
+
+### 5. Data Integrity
+- **User data isolation is non-negotiable.** One user's weight, calories, or profile data must never be visible to or affect another user. Any changes to Supabase queries must include the user's auth ID filter. Any changes to RLS policies require owner sign-off.
+- **Never use `service_role` key in client-side code.** All client-side Supabase operations must use the `anon` key with RLS enforcement.
+- **When adding or modifying meal templates, include ALL required fields:** meal name, ingredients (with amounts, units, and per-ingredient calories), total recipe calories, number of servings, per-serving calories, meal category (breakfast/lunch/dinner/snack), and portion size label (e.g. "Female portion").
+
+---
+
+## KNOWN GOTCHAS — THINGS THAT HAVE BROKEN BEFORE
+
+### React Hydration Errors (Error #418)
+The app has a recurring hydration mismatch. Primary causes:
+- **Time-of-day greeting** ("Good Morning/Afternoon/Evening") renders differently on server vs client. Solution: wrap in `useEffect` or use `'use client'` directive with a placeholder on first render.
+- **Dynamic dates/timestamps** (e.g. "Suggestions updated 10:09 AM"). Solution: render these client-side only.
+- **Calorie goal numbers** that depend on user profile data not yet loaded during SSR. Solution: show skeleton/loading state during SSR, populate client-side.
+
+### Mobile-Specific Issues That Keep Recurring
+- **Sidebar doesn't collapse on mobile** — needs hamburger menu toggle at mobile breakpoints. Check after any layout changes.
+- **YouTube video embeds disappear on mobile** — the responsive wrapper (position:relative, padding-bottom:56.25%, overflow:hidden) must be present. Parent containers must not have height/width constraints that collapse at small viewports.
+- **Barcode scan button should be hidden or show "mobile only" tooltip on desktop** — there's no camera to scan with.
+
+### Habits Section Edge Cases
+- When a user has 0 habits configured, the app shows "Perfect day! All habits completed!" — this is wrong. 0 configured habits should show an onboarding prompt, not a congratulation.
+- The daily summary counter has shown "You've completed _ out of 0 habits today" (missing number). Ensure the template handles zero/null values.
+
+### Content & Branding
+- **Footer year:** Use `new Date().getFullYear()` — never hardcode the year. The app shipped with "© 2025" into 2026.
+- **Google Slides embed for Meal Plan Ideas** shows "Made with GAMMA" branding. This undermines professionalism. Plan to replace with native recipe cards.
+- **Weight display:** The user's preferred units (metric/imperial) must be respected throughout. South African and UK users expect kg; US users expect lbs. Never assume one system.
+
+---
+
+## ARCHITECTURE REFERENCE
+
+### F.R.E.S.H. Pillar Structure
+Each pillar should function independently but share a common user context:
+
+```
+/food      → Nutrition tracking, USDA search, meal templates, food log, daily/weekly summaries
+/rest      → Stress management, meditation, sleep tracking, restoration content
+/exercise  → Workout library, activity tracking, exercise demo videos
+/spirit    → Faith deepening, journaling, spiritual Q&A, daily scripture
+/habits    → Consistency tracking, streak badges, gamification, daily check-ins
+```
+
+### Database Conventions (Supabase)
+- All user-facing tables MUST have RLS policies filtering on `auth.uid()`
+- Profile table: `id`, `user_id` (FK to auth.users), `gender`, `age`, `preferred_units`, `height_cm`, `weight_kg`, `goal`, `activity_level`, `onboarding_complete` (boolean), `created_at`, `updated_at`
+- Food log table: entries tied to `user_id` with timestamp, meal data, and calculated per-serving nutrition
+- When querying profiles: ALWAYS handle three states: (1) profile found and complete, (2) profile found but incomplete, (3) query failed/returned empty due to auth or RLS issues. State 3 is NOT the same as "new user."
+
+### Meal Template Data Structure
+Every meal template entry must include:
+```
+{
+  name: string,               // "Chicken & Whole Wheat Pasta Primavera"
+  category: string,           // "dinner" | "lunch" | "breakfast" | "snack"
+  servings: number,           // e.g. 4
+  portion_label: string,      // "Female portion"
+  ingredients: [
+    {
+      name: string,           // "Whole wheat pasta (cooked)"
+      amount: number,         // 600
+      unit: string,           // "g"
+      calories: number,       // 942 (NOT dry weight calories)
+      weight_state: string    // "cooked" | "dry" | "raw" — REQUIRED for grains/pasta
+    }
+  ],
+  total_calories: number,     // Sum of all ingredient calories
+  per_serving_calories: number // total_calories / servings — THIS IS WHAT GETS DISPLAYED
+}
+```
+
+### API Integration
+- **USDA Food API** for food search and nutrition data (replaced FatSecret)
+- All API keys stored in Vercel environment variables, never in client code
+- API calls should include error handling with user-friendly fallback messages
+
+---
+
+## NAVIGATION RULES — HOW TO HANDLE COMMON SITUATIONS
+
+### When asked to fix a bug:
+1. Read this CLAUDE.md first — check if the bug matches a known gotcha
+2. Identify the root cause before writing any fix code
+3. Check if a previous fix for this same issue exists in git history
+4. Implement the fix
+5. Run the dev server, verify on both desktop and mobile viewport
+6. Check 3 adjacent features for regressions
+7. Run `npm run build` to catch SSR/hydration issues
+8. Commit with a descriptive message referencing the bug
+
+### When asked to add or modify meal templates:
+1. Confirm all ingredient weights specify cooked vs dry state
+2. Calculate total recipe calories by summing ingredients
+3. Divide by servings to get per-portion calories
+4. Show the calculation to the owner for verification before committing
+5. Verify the template displays correctly in the app after deployment
+
+### When asked to change authentication or profile logic:
+1. **STOP and ask the owner for confirmation** before proceeding
+2. List exactly what RLS policies you plan to change
+3. Explain the impact on existing users with saved profiles
+4. Implement with the localStorage backup flag safeguard
+5. Test with: new user, existing user (desktop), existing user (mobile), slow network, network failure mid-load
+
+### When asked to modify the UI layout:
+1. Check the current layout on desktop (1440px), tablet (768px), and mobile (390px)
+2. Make changes
+3. Re-verify all three viewports
+4. Specifically check: sidebar behaviour, video embeds, food log display, navigation accessibility
+
+### When you encounter ambiguous requirements:
+Ask the owner before making assumptions. Common ambiguities that have caused rework:
+- "Update the calories" → Does this mean recalculate from ingredients, or manually override?
+- "Fix the layout" → Desktop, mobile, or both?
+- "Add a new meal" → What category? What serving size? Cooked or dry weights?
+- "It's not working" → On which device? After which action? For new or existing users?
+
+---
+
+## SIGNALS — ADAPTIVE BEHAVIOUR RULES
+
+| Signal | Response |
+|--------|----------|
+| Owner reports a calorie value is wrong | Audit ALL meal templates for the same pattern (total not divided by servings), not just the one reported |
+| Owner reports a feature "keeps breaking" | Search git history for previous fixes to the same feature. Identify why the fix didn't persist — was it overwritten by a later change? Was the root cause not addressed? |
+| Owner provides a PDF with recipe data | Extract FEMALE portion sizes only unless told otherwise. Target calorie ranges: breakfast ~250-350, lunch ~300-400, dinner ~600-800 |
+| Owner says "this was already fixed" | This means a regression. Check git blame on the relevant files. Find what change reintroduced the bug. Fix it AND add a guard to prevent recurrence. |
+| A Supabase query returns empty unexpectedly | NEVER treat this as "no data exists." First check: is the user authenticated? Is the RLS policy allowing the read? Is the query filtering on the correct user_id? Only after confirming all three should you treat it as genuinely empty. |
+| Build fails on Vercel | Check for hydration mismatches first (most common), then missing environment variables, then dependency issues |
+| Mobile layout looks wrong | Check the sidebar collapse, video embed responsive wrappers, and parent container overflow properties — these are the three most common mobile layout failures in this project |
+
+---
+
+## QUALITY GATES — CHECKLIST BEFORE ANY COMMIT
+
+Before committing changes, verify ALL that apply:
+
+- [ ] `npm run build` passes without errors
+- [ ] No new hydration warnings in browser console
+- [ ] Changes tested on desktop viewport (1440px)
+- [ ] Changes tested on mobile viewport (390px)
+- [ ] If calorie-related: per-serving calculation verified manually
+- [ ] If auth/profile-related: tested with new user AND existing user flows
+- [ ] If state-management-related: UI updates without page refresh
+- [ ] If meal-template-related: weights specify cooked/dry, servings divide correctly
+- [ ] No `service_role` key in client-side code
+- [ ] All Supabase queries filter on authenticated user_id
+- [ ] Adjacent features spot-checked for regressions
+
+---
+
+## PROHIBITED ACTIONS
+
+Do NOT do any of the following without explicit owner approval:
+
+1. Modify Supabase RLS policies
+2. Change the authentication flow or session handling
+3. Delete or restructure the profiles table
+4. Switch API providers (e.g. replacing USDA API)
+5. Modify environment variables on Vercel
+6. Change the deployment branch or build settings
+7. Install new major dependencies (minor patches are fine)
+8. Overwrite existing user data with empty/null values
+9. Remove meal templates without replacement content ready
+10. Change the F.R.E.S.H. pillar navigation structure
+
+---
+
+## PROJECT HISTORY NOTES
+
+This project has gone through multiple debugging cycles. The most damaging recurring issues, in order of user impact:
+
+1. **Profile re-onboarding loop** — Fixed 4 times, returned each time. Root cause was always related to the interaction between auth state, RLS policies, and the profile completeness check. Any change to auth or profiles MUST be treated as high-risk.
+
+2. **Calorie display showing recipe totals instead of per-serving** — Affected 8+ dinner templates simultaneously. The underlying pattern was always the same: ingredient calories summed correctly but `servings` division was missing from the display logic.
+
+3. **Food log not updating without refresh** — State management issue. The Supabase insert succeeds but the React state displaying the log doesn't re-fetch or invalidate. Optimistic UI updates are the solution, not "tell the user to refresh."
+
+4. **Mobile rendering failures** — Sidebar, videos, and layout all have mobile-specific issues that get reintroduced when desktop-focused changes are made without mobile testing.
+
+These four patterns account for the majority of rework in this project. Guard against them aggressively.
