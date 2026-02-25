@@ -54,7 +54,25 @@ function AuthForm() {
         if (error) throw error;
 
         if (data.user) {
-          router.push(redirect || '/dashboard');
+          // Check if this user has already used their free report
+          const { data: profile } = await supabase
+            .from('users')
+            .select('free_report_used, subscription_tier')
+            .eq('id', data.user.id)
+            .single();
+
+          // New free users who haven't generated a report yet go to onboarding
+          const shouldOnboard =
+            !profile?.free_report_used &&
+            (!profile?.subscription_tier || profile.subscription_tier === 'free');
+
+          if (redirect) {
+            router.push(redirect);
+          } else if (shouldOnboard) {
+            router.push('/onboarding');
+          } else {
+            router.push('/dashboard');
+          }
         }
       }
     } catch (error: any) {
@@ -72,7 +90,7 @@ function AuthForm() {
 
   const getSubtitle = () => {
     if (isResetPassword) return "Enter your email and we'll send a reset link.";
-    if (isSignUp) return '28 days free. No credit card required.';
+    if (isSignUp) return 'One free strategic report. No credit card required.';
     return 'Sign in to continue';
   };
 
