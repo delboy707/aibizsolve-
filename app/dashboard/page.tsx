@@ -85,12 +85,10 @@ export default async function DashboardPage() {
     avgGenerationTime: calculateAvgGenerationTime(decisions || []),
   };
 
-  // Calculate trial days remaining
-  const trialEndsAt = userData?.trial_ends_at ? new Date(userData.trial_ends_at) : null;
-  const trialDaysRemaining = trialEndsAt
-    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)))
-    : 0;
-  const isTrialActive = userData?.payment_tier === 'trial' && trialDaysRemaining > 0;
+  // Tier info
+  const currentTier = (userData?.subscription_tier as string) || 'free';
+  const trialDaysRemaining = 0; // Trial concept replaced by free tier
+  const isTrialActive = false;
 
   const handleSignOut = async () => {
     'use server';
@@ -180,18 +178,8 @@ export default async function DashboardPage() {
             <div>
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Your Account</h2>
               <p className="text-gray-700">
-                Status: <span className="font-semibold capitalize text-primary-600">{userData?.payment_tier}</span>
+                Plan: <span className="font-semibold capitalize text-primary-600">{currentTier.replace('_', ' ')}</span>
               </p>
-              {userData?.payment_tier === 'trial' && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Trial ends: {new Date(userData.trial_ends_at).toLocaleDateString()}
-                </p>
-              )}
-              {userData?.monthly_payment && userData.monthly_payment > 0 && (
-                <p className="text-sm text-gray-600 mt-1">
-                  Current payment: ${userData.monthly_payment}/month
-                </p>
-              )}
             </div>
             <Link
               href="/pricing"

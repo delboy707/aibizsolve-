@@ -1,16 +1,19 @@
 // User types
+export type SubscriptionTier = 'free' | 'starter' | 'professional' | 'founding_leader';
+/** @deprecated — use SubscriptionTier. Kept for migration compat. */
 export type PaymentTier = 'trial' | 'below_average' | 'average' | 'above_average';
 export type UserSegment = 'solopreneur' | 'small_business' | 'manager' | 'ceo';
 
 export interface User {
   id: string;
   email: string;
-  monthly_payment: number;
-  payment_tier: PaymentTier;
+  subscription_tier: SubscriptionTier;
+  /** @deprecated — replaced by subscription_tier */
+  payment_tier?: PaymentTier;
   user_segment: UserSegment | null;
-  trial_ends_at: string;
-  monthly_queries_used: number;
-  queries_reset_at: string;
+  free_report_used: boolean;
+  reports_used_this_cycle: number;
+  billing_cycle_start: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
   created_at: string;

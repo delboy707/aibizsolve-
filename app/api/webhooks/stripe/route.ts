@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { stripe, calculatePaymentTier } from '@/lib/stripe/client';
+import { stripe } from '@/lib/stripe/client';
 import { createClient } from '@/lib/supabase/admin';
 import Stripe from 'stripe';
+
+// Map subscription price (in cents) to the new subscription_tier values.
+// These match the three fixed tiers from the revised pricing model.
+const PRICE_TO_TIER: Record<number, string> = {
+  2900: 'starter',          // $29/month
+  7900: 'professional',     // $79/month
+  14900: 'founding_leader', // $149/month
+};
+
+function getTierFromAmount(amountInCents: number): string {
+  return PRICE_TO_TIER[amountInCents] || 'starter';
+}
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -31,15 +43,55 @@ export async function POST(req: NextRequest) {
 
   try {
     switch (event.type) {
-      case 'customer.subscription.created':
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+
+        // client_reference_id contains the Supabase user ID
+        // (set by our Payment Link redirect URL or Checkout Session)
+        const userId = session.client_reference_id || session.metadata?.user_id;
+        if (!userId) {
+          console.error('No client_reference_id or user_id on checkout session');
+          break;
+        }
+
+        // Retrieve the subscription to get the price/amount
+        const subscriptionId = session.subscription as string;
+        let tier = 'starter';
+
+        if (subscriptionId) {
+          const subscription = await stripe().subscriptions.retrieve(subscriptionId);
+          const amount = subscription.items.data[0]?.price?.unit_amount || 0;
+          tier = getTierFromAmount(amount);
+        }
+
+        // For founding_leader, atomically claim a slot
+        if (tier === 'founding_leader') {
+          const { data: slotClaimed } = await supabase.rpc('claim_founding_leader_slot');
+          if (!slotClaimed) {
+            tier = 'professional';
+            console.warn(`Founding Leader slot unavailable for user ${userId}, downgraded to professional`);
+          }
+        }
+
+        await supabase.from('users').update({
+          subscription_tier: tier,
+          stripe_customer_id: session.customer as string,
+          stripe_subscription_id: subscriptionId,
+          reports_used_this_cycle: 0,
+          billing_cycle_start: new Date().toISOString(),
+        }).eq('id', userId);
+
+        console.log(`checkout.session.completed for user ${userId}: tier=${tier}`);
+        break;
+      }
+
       case 'customer.subscription.updated': {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Get user from customer ID
         const { data: user } = await supabase
           .from('users')
-          .select('*')
+          .select('id')
           .eq('stripe_customer_id', customerId)
           .single();
 
@@ -48,42 +100,18 @@ export async function POST(req: NextRequest) {
           break;
         }
 
-        // Get payment amount from subscription
-        const amount = subscription.items.data[0]?.price?.unit_amount || 0;
-        const monthlyPayment = amount / 100; // Convert cents to dollars
+        if (subscription.status === 'active') {
+          const amount = subscription.items.data[0]?.price?.unit_amount || 0;
+          const tier = getTierFromAmount(amount);
 
-        // Get segment from metadata, validate against allowed values
-        const VALID_SEGMENTS = ['solopreneur', 'small_business', 'manager', 'ceo'];
-        const rawSegment = subscription.metadata.segment || 'solopreneur';
-        const segment = VALID_SEGMENTS.includes(rawSegment) ? rawSegment : 'solopreneur';
+          await supabase.from('users').update({
+            subscription_tier: tier,
+            reports_used_this_cycle: 0,
+            billing_cycle_start: new Date().toISOString(),
+          }).eq('id', user.id);
 
-        // Get segment average
-        const { data: segmentData } = await supabase
-          .from('payment_stats')
-          .select('average_payment')
-          .eq('segment', segment)
-          .single();
-
-        const averagePayment = segmentData?.average_payment || 50;
-
-        // Calculate payment tier
-        const paymentTier = calculatePaymentTier(monthlyPayment, averagePayment);
-
-        // Update user
-        await supabase
-          .from('users')
-          .update({
-            monthly_payment: monthlyPayment,
-            payment_tier: paymentTier,
-            user_segment: segment,
-            stripe_subscription_id: subscription.id,
-          })
-          .eq('id', user.id);
-
-        // Update payment stats
-        await updatePaymentStats(supabase, segment, monthlyPayment);
-
-        console.log(`Subscription ${event.type} for user ${user.id}: $${monthlyPayment}/month, tier: ${paymentTier}`);
+          console.log(`subscription.updated for user ${user.id}: tier=${tier}`);
+        }
         break;
       }
 
@@ -91,7 +119,6 @@ export async function POST(req: NextRequest) {
         const subscription = event.data.object as Stripe.Subscription;
         const customerId = subscription.customer as string;
 
-        // Get user from customer ID
         const { data: user } = await supabase
           .from('users')
           .select('id')
@@ -99,17 +126,12 @@ export async function POST(req: NextRequest) {
           .single();
 
         if (user) {
-          // Reset to trial (or handle cancellation differently)
-          await supabase
-            .from('users')
-            .update({
-              monthly_payment: 0,
-              payment_tier: 'trial',
-              stripe_subscription_id: null,
-            })
-            .eq('id', user.id);
+          await supabase.from('users').update({
+            subscription_tier: 'free',
+            stripe_subscription_id: null,
+          }).eq('id', user.id);
 
-          console.log(`Subscription cancelled for user ${user.id}`);
+          console.log(`subscription.deleted for user ${user.id}: downgraded to free`);
         }
         break;
       }
@@ -123,7 +145,6 @@ export async function POST(req: NextRequest) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object as Stripe.Invoice;
         console.error(`Payment failed for invoice ${invoice.id}`);
-        // Could send an email notification here
         break;
       }
 
@@ -136,39 +157,4 @@ export async function POST(req: NextRequest) {
     console.error('Webhook handler error:', error);
     return NextResponse.json({ error: 'Webhook handler failed' }, { status: 500 });
   }
-}
-
-// Helper function to update payment stats
-async function updatePaymentStats(
-  supabase: ReturnType<typeof createClient>,
-  segment: string,
-  newPayment: number
-) {
-  // Get current stats
-  const { data: currentStats } = await supabase
-    .from('payment_stats')
-    .select('*')
-    .eq('segment', segment)
-    .single();
-
-  if (!currentStats) return;
-
-  const currentCount = currentStats.payment_count || 0;
-  const currentAverage = currentStats.average_payment || 0;
-
-  // Calculate new average with NaN safety
-  const newCount = currentCount + 1;
-  const newAverage = ((currentAverage * currentCount) + newPayment) / newCount;
-
-  if (!Number.isFinite(newAverage)) return;
-
-  // Update stats
-  await supabase
-    .from('payment_stats')
-    .update({
-      average_payment: newAverage,
-      payment_count: newCount,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('segment', segment);
 }

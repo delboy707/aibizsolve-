@@ -1,5 +1,6 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { getTierContext } from '@/lib/tier-guard';
+import { createClient } from '@/lib/supabase/server';
 import DocumentClient from './DocumentClient';
 
 export default async function DocumentPage({
@@ -8,38 +9,25 @@ export default async function DocumentPage({
   params: Promise<{ decisionId: string }>;
 }) {
   const { decisionId } = await params;
-  const supabase = await createClient();
 
-  // Get current user
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
+  const tierCtx = await getTierContext();
+  if (!tierCtx) {
     redirect('/auth');
   }
 
-  // Fetch decision
+  const supabase = await createClient();
+
+  // Fetch decision (scoped to user)
   const { data: decision, error: decisionError } = await supabase
     .from('decisions')
     .select('*')
     .eq('id', decisionId)
-    .eq('user_id', user.id)
+    .eq('user_id', tierCtx.userId)
     .single();
 
   if (decisionError || !decision) {
     redirect('/dashboard');
   }
-
-  // Fetch user data for payment tier
-  const { data: userData } = await supabase
-    .from('users')
-    .select('payment_tier, trial_ends_at')
-    .eq('id', user.id)
-    .single();
-
-  // Check Alchemy access
-  const hasAlchemyAccess =
-    (userData?.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at || 0)) ||
-    ['average', 'above_average'].includes(userData?.payment_tier || '');
 
   // Fetch document
   const { data: document } = await supabase
@@ -68,11 +56,15 @@ export default async function DocumentPage({
     );
   }
 
+  // Pass the raw alchemy content for teased mode (stored separately in DB)
+  const alchemyRaw: string = document.alchemy_content?.raw || '';
+
   return (
     <DocumentClient
       decisionId={decisionId}
       document={document}
-      hasAlchemyAccess={hasAlchemyAccess}
+      alchemyAccess={tierCtx.alchemyAccess}
+      alchemyRaw={alchemyRaw}
     />
   );
 }
