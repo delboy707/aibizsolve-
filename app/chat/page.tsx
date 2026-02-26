@@ -1,19 +1,37 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import ChatInterface from '@/components/chat/ChatInterface';
-import Link from 'next/link';
+import { AppHeader } from '@/components/layout/AppHeader';
 import type { Message, UploadedDocument } from '@/types';
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [decisionId, setDecisionId] = useState<string | null>(null);
   const [pendingUploads, setPendingUploads] = useState<UploadedDocument[]>([]);
+  const [userInfo, setUserInfo] = useState<{ email: string; tier: string; hasStripe: boolean } | null>(null);
   const creatingDecision = useRef(false);
   const router = useRouter();
   const supabase = createClient();
+
+  useEffect(() => {
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: profile } = await supabase
+        .from('users')
+        .select('subscription_tier, stripe_customer_id')
+        .eq('id', user.id)
+        .single();
+      setUserInfo({
+        email: user.email || '',
+        tier: profile?.subscription_tier || 'free',
+        hasStripe: !!profile?.stripe_customer_id,
+      });
+    })();
+  }, [supabase]);
 
   // Handle file uploads before decision creation
   const handleUploadComplete = (document: UploadedDocument) => {
@@ -185,25 +203,11 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">Q</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
-            </Link>
-            <Link
-              href="/dashboard"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        email={userInfo?.email}
+        tier={userInfo?.tier}
+        hasStripe={userInfo?.hasStripe}
+      />
 
       {/* Chat Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto flex flex-col">

@@ -5,14 +5,17 @@ import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { TIERS } from '@/lib/tiers';
 import type { TierKey } from '@/lib/tiers';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 interface PricingClientProps {
   userId: string;
   currentTier: TierKey;
   foundingLeaderRemaining: number;
+  userEmail?: string;
+  hasStripe?: boolean;
 }
 
-export default function PricingClient({ userId, currentTier, foundingLeaderRemaining }: PricingClientProps) {
+export default function PricingClient({ userId, currentTier, foundingLeaderRemaining, userEmail, hasStripe }: PricingClientProps) {
   const searchParams = useSearchParams();
   const upgraded = searchParams.get('upgraded') === 'true';
   const [mounted, setMounted] = useState(false);
@@ -51,22 +54,7 @@ export default function PricingClient({ userId, currentTier, foundingLeaderRemai
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">Q</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
-            </Link>
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-              Back to Dashboard
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader email={userEmail} tier={currentTier} hasStripe={hasStripe} />
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Success banner */}

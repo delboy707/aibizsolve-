@@ -59,12 +59,23 @@ export default async function DocumentPage({
   // Pass the raw alchemy content for teased mode (stored separately in DB)
   const alchemyRaw: string = document.alchemy_content?.raw || '';
 
+  // Fetch user profile for header
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: userProfile } = await supabase
+    .from('users')
+    .select('subscription_tier, stripe_customer_id')
+    .eq('id', tierCtx.userId)
+    .single();
+
   return (
     <DocumentClient
       decisionId={decisionId}
       document={document}
       alchemyAccess={tierCtx.alchemyAccess}
       alchemyRaw={alchemyRaw}
+      userEmail={user?.email || ''}
+      userTier={userProfile?.subscription_tier || 'free'}
+      hasStripe={!!userProfile?.stripe_customer_id}
     />
   );
 }
