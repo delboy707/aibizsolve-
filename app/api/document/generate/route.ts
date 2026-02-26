@@ -7,6 +7,7 @@ import { sendDocumentReadyEmail } from '@/lib/email/client';
 import { generateEmbedding } from '@/lib/ai/openai';
 import { analyzeCrossDomainSynergy, Domain } from '@/lib/ai/synergy';
 import { classifyProblem } from '@/lib/ai/classify';
+import { getTierContext } from '@/lib/tier-guard';
 
 // Vector search helper — uses admin client to bypass RLS on shared workflows table
 async function searchWorkflows(
@@ -146,22 +147,23 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // ── Tier-aware access control ──────────────────────────────────────
+    const tierCtx = await getTierContext();
+    if (!tierCtx) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check user's payment tier for Alchemy access
-    const { data: userData } = await supabase
-      .from('users')
-      .select('payment_tier, trial_ends_at')
-      .eq('id', user.id)
-      .single();
-
-    const hasAlchemyAccess =
-      (userData?.payment_tier === 'trial' && new Date() < new Date(userData.trial_ends_at || 0)) ||
-      ['average', 'above_average'].includes(userData?.payment_tier || '');
+    // Check report limits
+    if (!tierCtx.canGenerate) {
+      const msg = tierCtx.tier === 'free'
+        ? 'You have used your free report. Upgrade to generate more reports.'
+        : `You have reached your ${tierCtx.tierConfig.reports_per_month} report limit this month. Upgrade for more.`;
+      return NextResponse.json({
+        error: msg,
+        code: 'REPORT_LIMIT_REACHED',
+        tier: tierCtx.tier,
+      }, { status: 403 });
+    }
 
     const { decisionId } = await req.json();
 
@@ -174,7 +176,7 @@ export async function POST(req: NextRequest) {
       .from('decisions')
       .select('*')
       .eq('id', decisionId)
-      .eq('user_id', user.id)
+      .eq('user_id', tierCtx.userId)
       .single();
 
     if (decisionError || !decision) {
@@ -207,7 +209,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // PRIORITY 1.2: Run classification if not already done
+    // Run classification if not already done
     let classification = {
       symptoms: decision.classified_symptoms || [],
       challenges: decision.classified_challenges || [],
@@ -230,7 +232,6 @@ export async function POST(req: NextRequest) {
         classification = await classifyProblem(fullProblemContext);
         console.log('Classification result:', classification);
 
-        // Update decision with classification
         await supabase
           .from('decisions')
           .update({
@@ -249,9 +250,20 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // PRIORITY 1.3: Use vector search with cross-domain synergy detection
-    console.log('Analyzing cross-domain synergy...');
+    // ── Domain access check ────────────────────────────────────────────
     const primaryDomain = (classification.primary_domain || 'strategy') as Domain;
+    const domainMessage = tierCtx.getDomainUpgradeMessage(primaryDomain);
+    if (domainMessage) {
+      return NextResponse.json({
+        error: domainMessage,
+        code: 'DOMAIN_LOCKED',
+        tier: tierCtx.tier,
+        domain: primaryDomain,
+      }, { status: 403 });
+    }
+
+    // Cross-domain synergy detection
+    console.log('Analyzing cross-domain synergy...');
     const synergyAnalysis = analyzeCrossDomainSynergy(primaryDomain, fullProblemContext);
     console.log('Synergy analysis:', {
       primary: synergyAnalysis.primaryDomain,
@@ -305,9 +317,11 @@ export async function POST(req: NextRequest) {
       .replace('{workflows}', workflowsSummary)
       .replace('{conversation}', conversationSummary);
 
-    // Prepare Alchemy prompt if user has access (needed for parallel execution)
+    // ── Alchemy access: 'full' → generate, 'teased' → generate (store separately), 'none' → skip
+    const generateAlchemy = tierCtx.alchemyAccess === 'full' || tierCtx.alchemyAccess === 'teased';
+
     const alchemyDomains = [classification.primary_domain, ...classification.secondary_domains].filter(Boolean);
-    const alchemyPrompt = hasAlchemyAccess ? ALCHEMY_PROMPT
+    const alchemyPrompt = generateAlchemy ? ALCHEMY_PROMPT
       .replace('{problem}', fullProblemContext)
       .replace('{domains}', alchemyDomains.length > 0 ? alchemyDomains.join(', ') : 'General Business Strategy')
       .replace('{intent}', classification.intent || 'explore')
@@ -315,9 +329,8 @@ export async function POST(req: NextRequest) {
       : '';
 
     // PARALLEL EXECUTION: Generate SCQA and Alchemy simultaneously
-    console.log('Generating SCQA document' + (hasAlchemyAccess ? ' and Alchemy Layer in parallel...' : '...'));
+    console.log('Generating SCQA document' + (generateAlchemy ? ' and Alchemy Layer in parallel...' : '...'));
 
-    // Helper to collect streamed response
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     async function collectStream(stream: AsyncIterable<any>): Promise<string> {
       let result = '';
@@ -345,8 +358,8 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Start Alchemy generation in parallel (if user has access)
-    const alchemyPromise = hasAlchemyAccess
+    // Start Alchemy generation in parallel (if tier qualifies)
+    const alchemyPromise = generateAlchemy
       ? collectStream(
           await anthropic().messages.stream({
             model: MODELS.OPUS,
@@ -363,106 +376,62 @@ export async function POST(req: NextRequest) {
         )
       : Promise.resolve('');
 
-    // Wait for both to complete
     const [scqaDocument, alchemySection] = await Promise.all([scqaPromise, alchemyPromise]);
     console.log('SCQA and Alchemy generation complete');
 
-    // Parse individual SCQA sections for database storage
+    // Parse SCQA sections for DB storage
     const parseSCQA = (doc: string) => {
       const sections: { situation?: string; complication?: string; question?: string; answer?: string } = {};
-
-      // Extract Executive Summary section
       const execSummaryMatch = doc.match(/## 1\. EXECUTIVE SUMMARY[\s\S]*?(?=## 2\.|$)/i);
       if (execSummaryMatch) {
         const execContent = execSummaryMatch[0];
-
-        // Extract Situation
         const situationMatch = execContent.match(/\*\*Situation\*\*:?\s*([\s\S]*?)(?=\*\*Complication\*\*|$)/i);
         if (situationMatch) sections.situation = situationMatch[1].trim();
-
-        // Extract Complication
         const complicationMatch = execContent.match(/\*\*Complication\*\*:?\s*([\s\S]*?)(?=\*\*Question\*\*|$)/i);
         if (complicationMatch) sections.complication = complicationMatch[1].trim();
-
-        // Extract Question
         const questionMatch = execContent.match(/\*\*Question\*\*:?\s*([\s\S]*?)(?=\*\*Answer\*\*|$)/i);
         if (questionMatch) sections.question = questionMatch[1].trim();
-
-        // Extract Answer
         const answerMatch = execContent.match(/\*\*Answer\*\*:?\s*([\s\S]*?)(?=##|$)/i);
         if (answerMatch) sections.answer = answerMatch[1].trim();
       }
-
       return sections;
     };
 
-    // Parse roadmap sections
     const parseRoadmap = (doc: string) => {
       const roadmap: { days_30?: string[]; days_60?: string[]; days_90?: string[] } = {};
-
-      // Extract Implementation Roadmap section
       const roadmapMatch = doc.match(/## 6\. IMPLEMENTATION ROADMAP[\s\S]*?(?=## 7\.|$)/i);
       if (roadmapMatch) {
         const roadmapContent = roadmapMatch[0];
-
-        // Extract 1-30 days
         const days30Match = roadmapContent.match(/\*\*Days 1-30[\s\S]*?(?=\*\*Days 31-60|$)/i);
         if (days30Match) {
-          roadmap.days_30 = days30Match[0]
-            .split('\n')
-            .filter(line => line.trim().startsWith('-'))
-            .map(line => line.replace(/^-\s*/, '').trim());
+          roadmap.days_30 = days30Match[0].split('\n').filter(line => line.trim().startsWith('-')).map(line => line.replace(/^-\s*/, '').trim());
         }
-
-        // Extract 31-60 days
         const days60Match = roadmapContent.match(/\*\*Days 31-60[\s\S]*?(?=\*\*Days 61-90|$)/i);
         if (days60Match) {
-          roadmap.days_60 = days60Match[0]
-            .split('\n')
-            .filter(line => line.trim().startsWith('-'))
-            .map(line => line.replace(/^-\s*/, '').trim());
+          roadmap.days_60 = days60Match[0].split('\n').filter(line => line.trim().startsWith('-')).map(line => line.replace(/^-\s*/, '').trim());
         }
-
-        // Extract 61-90 days
         const days90Match = roadmapContent.match(/\*\*Days 61-90[\s\S]*?(?=##|$)/i);
         if (days90Match) {
-          roadmap.days_90 = days90Match[0]
-            .split('\n')
-            .filter(line => line.trim().startsWith('-'))
-            .map(line => line.replace(/^-\s*/, '').trim());
+          roadmap.days_90 = days90Match[0].split('\n').filter(line => line.trim().startsWith('-')).map(line => line.replace(/^-\s*/, '').trim());
         }
       }
-
       return roadmap;
     };
 
     const scqaSections = parseSCQA(scqaDocument);
     const roadmapSections = parseRoadmap(scqaDocument);
 
-    // Merge results
+    // ── Merge document based on alchemy access ─────────────────────────
     let fullDocument = scqaDocument;
+    const includesAlchemy = tierCtx.alchemyAccess === 'full' && !!alchemySection;
 
-    if (hasAlchemyAccess && alchemySection) {
+    if (includesAlchemy) {
+      // Full access: append alchemy section inline
       fullDocument = `${scqaDocument}\n\n---\n\n## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemySection}`;
-    } else if (!hasAlchemyAccess) {
-      // Add teaser for users without access
-      const alchemyTeaser = `## 🔒 Unlock Counterintuitive Options
-
-**The Alchemy Layer** provides behavioral and counterintuitive insights that most business consultants won't consider:
-
-- **The Opposite Lens**: What if you did the exact reverse?
-- **The Perception Lens**: How to change how this *feels* rather than what it *is*
-- **The Signal Lens**: Make this feel more valuable without changing substance
-- **The Small Bet Lens**: Micro-interventions under $10K with outsized impact
-
-**Upgrade to unlock**: Beat the average payment for your segment to access these premium insights.
-
-[Visit Pricing](/pricing)`;
-
-      fullDocument = `${scqaDocument}\n\n---\n\n${alchemyTeaser}`;
     }
+    // For 'teased' and 'none': alchemy content is stored separately, not in main document
 
-    // Save to database with individual SCQA fields
+    // Save to database
     const { data: savedDocument, error: saveError } = await supabase
       .from('documents')
       .insert({
@@ -470,19 +439,15 @@ export async function POST(req: NextRequest) {
         title: `Strategic Analysis: ${decision.problem_statement?.substring(0, 100)}`,
         content: fullDocument,
         format: 'markdown',
-        // Individual SCQA fields
         scqa_situation: scqaSections.situation || null,
         scqa_complication: scqaSections.complication || null,
         scqa_question: scqaSections.question || null,
         scqa_answer: scqaSections.answer || null,
-        // Roadmap fields
         roadmap_30: roadmapSections.days_30 || null,
         roadmap_60: roadmapSections.days_60 || null,
         roadmap_90: roadmapSections.days_90 || null,
-        // Alchemy content
-        alchemy_content: alchemySection ? {
-          raw: alchemySection,
-        } : null,
+        alchemy_content: alchemySection ? { raw: alchemySection } : null,
+        includes_alchemy: includesAlchemy,
       })
       .select()
       .single();
@@ -492,12 +457,12 @@ export async function POST(req: NextRequest) {
       throw saveError;
     }
 
-    // Update decision status and store matched workflows
+    // Update decision status
     await supabase
       .from('decisions')
       .update({
         status: 'complete',
-        alchemy_generated: hasAlchemyAccess,
+        alchemy_generated: generateAlchemy,
         matched_workflows: workflows.map(w => ({
           name: w.name,
           domain: w.domain,
@@ -506,11 +471,24 @@ export async function POST(req: NextRequest) {
       })
       .eq('id', decisionId);
 
+    // ── Increment report counter ───────────────────────────────────────
+    if (tierCtx.tier === 'free') {
+      await supabase.from('users').update({
+        free_report_used: true,
+        first_report_at: new Date().toISOString(),
+        activated_at: new Date().toISOString(),
+      }).eq('id', tierCtx.userId);
+    } else {
+      await supabase.from('users').update({
+        reports_used_this_cycle: tierCtx.reportsUsed + 1,
+      }).eq('id', tierCtx.userId);
+    }
+
     // Send email notification
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const documentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://qep-aisolve.app'}/document/${decisionId}`;
 
-      // Extract executive summary (first 300 chars of SCQA section)
       const executiveSummaryMatch = scqaDocument.match(/## 1\. EXECUTIVE SUMMARY[\s\S]*?(?=## 2\.|$)/);
       let executiveSummary = 'Your comprehensive strategic analysis is ready for review.';
 
@@ -522,22 +500,22 @@ export async function POST(req: NextRequest) {
         executiveSummary = summaryText.substring(0, 300) + (summaryText.length > 300 ? '...' : '');
       }
 
-      await sendDocumentReadyEmail(user.email!, {
-        userName: user.email!.split('@')[0], // Use email prefix as name
+      await sendDocumentReadyEmail(user!.email!, {
+        userName: user!.email!.split('@')[0],
         problemTitle: decision.problem_statement?.substring(0, 100) || 'Your Business Challenge',
         documentUrl,
         executiveSummary,
       });
 
-      console.log('Email sent successfully to:', user.email);
+      console.log('Email sent successfully to:', user!.email);
     } catch (emailError) {
-      // Don't fail the request if email fails
       console.error('Failed to send email notification:', emailError);
     }
 
     return NextResponse.json({
       document: savedDocument,
       preview: fullDocument.substring(0, 500) + '...',
+      alchemyAccess: tierCtx.alchemyAccess,
     });
   } catch (error) {
     console.error('Document generation error:', error);

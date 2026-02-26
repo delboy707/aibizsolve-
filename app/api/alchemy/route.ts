@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { generateAlchemy, AlchemyInput } from '@/lib/ai/alchemy';
+import { getTierContext } from '@/lib/tier-guard';
 
 /**
  * POST /api/alchemy
@@ -22,29 +23,20 @@ export async function POST(req: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Verify authentication
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
+    // Verify authentication and tier access
+    const tierCtx = await getTierContext();
+    if (!tierCtx) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check user's payment tier for Alchemy access
-    const { data: userData } = await supabase
-      .from('users')
-      .select('payment_tier, trial_ends_at')
-      .eq('id', user.id)
-      .single();
-
-    const hasAlchemyAccess =
-      (userData?.payment_tier === 'trial' && userData.trial_ends_at && new Date() < new Date(userData.trial_ends_at)) ||
-      ['average', 'above_average'].includes(userData?.payment_tier || '');
-
-    if (!hasAlchemyAccess) {
+    if (tierCtx.alchemyAccess !== 'full') {
       return NextResponse.json(
         { error: 'Upgrade required for Alchemy insights' },
         { status: 403 }
       );
     }
+
+    const user = { id: tierCtx.userId };
 
     const body = await req.json();
     const { decisionId, problem, domains, intent, challenges } = body;

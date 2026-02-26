@@ -12,10 +12,13 @@ interface DocumentClientProps {
     content: string;
     created_at: string;
   };
-  hasAlchemyAccess: boolean;
+  /** Three-state alchemy access from getTierContext() */
+  alchemyAccess: 'none' | 'teased' | 'full';
+  /** Raw alchemy markdown stored separately in DB (for teased mode) */
+  alchemyRaw: string;
 }
 
-export default function DocumentClient({ decisionId, document, hasAlchemyAccess }: DocumentClientProps) {
+export default function DocumentClient({ decisionId, document, alchemyAccess, alchemyRaw }: DocumentClientProps) {
   const [activeTab, setActiveTab] = useState<'strategic' | 'alchemy'>('strategic');
   const [mounted, setMounted] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -24,28 +27,43 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
     setMounted(true);
   }, []);
 
-  // Format date consistently
   const createdDate = new Date(document.created_at).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'numeric',
     day: 'numeric'
   });
 
-  // Split content at Section 8
+  // Split inline alchemy content (present when access === 'full' and content was merged)
   const contentParts = document.content.split(/## 8\. ALCHEMY SECTION.*?\n/);
   const strategicContent = contentParts[0] || document.content;
-  const alchemyContent = contentParts[1] || '';
+  // For full access, alchemy may be inline; for teased, use alchemyRaw from DB
+  const alchemyContent = alchemyAccess === 'full'
+    ? (contentParts[1] || alchemyRaw || '')
+    : (alchemyRaw || '');
 
   const hasAlchemy = alchemyContent.trim().length > 0;
 
-  // Get content based on active tab
+  // Extract headings from alchemy content for the teaser
+  const extractAlchemyHeadings = (content: string): string[] => {
+    const headingRegex = /^##\s+(.+)$/gm;
+    const headings: string[] = [];
+    let match;
+    while ((match = headingRegex.exec(content)) !== null) {
+      headings.push(match[1]);
+    }
+    return headings.length > 0 ? headings : [
+      'Counterintuitive Options',
+      'The Perception Play',
+      'Small Bet, Big Signal',
+      'The Hidden Driver',
+    ];
+  };
+
   const getCurrentContent = () => {
     if (activeTab === 'strategic') {
       return strategicContent;
-    } else {
-      // For alchemy tab, include section header + content
-      return `## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemyContent}`;
     }
+    return `## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemyContent}`;
   };
 
   const getCurrentFilename = () => {
@@ -53,7 +71,6 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
     return activeTab === 'strategic' ? baseFilename : `${baseFilename}_alchemy`;
   };
 
-  // Download as markdown
   const downloadMarkdown = () => {
     const content = getCurrentContent();
     const blob = new Blob([content], { type: 'text/markdown' });
@@ -67,16 +84,13 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
     URL.revokeObjectURL(url);
   };
 
-  // Download as text
   const downloadText = () => {
     const content = getCurrentContent();
-    // Strip markdown formatting for plain text
     const plainText = content
-      .replace(/^#{1,6}\s/gm, '') // Remove headers
-      .replace(/\*\*/g, '') // Remove bold
-      .replace(/\*/g, '') // Remove italics
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1'); // Remove links, keep text
-
+      .replace(/^#{1,6}\s/gm, '')
+      .replace(/\*\*/g, '')
+      .replace(/\*/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
     const blob = new Blob([plainText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = window.document.createElement('a');
@@ -88,14 +102,12 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
     URL.revokeObjectURL(url);
   };
 
-  // Copy to clipboard
   const copyToClipboard = () => {
     const content = getCurrentContent();
     navigator.clipboard.writeText(content);
     alert(`${activeTab === 'strategic' ? 'Strategic document' : 'Alchemy section'} copied to clipboard!`);
   };
 
-  // Regenerate document
   const handleRegenerate = async () => {
     if (!confirm('Regenerate this strategic document? This will create a new version with updated insights based on the latest conversation.')) {
       return;
@@ -110,10 +122,15 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
       });
 
       if (!response.ok) {
+        const data = await response.json();
+        if (data.code === 'REPORT_LIMIT_REACHED' || data.code === 'DOMAIN_LOCKED') {
+          alert(data.error);
+          setRegenerating(false);
+          return;
+        }
         throw new Error('Failed to regenerate document');
       }
 
-      // Reload page to show new document
       window.location.reload();
     } catch {
       alert('Failed to regenerate document. Please try again.');
@@ -121,61 +138,7 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
     }
   };
 
-  // Parse content into sections with copy buttons
-  const parseSections = (content: string, isAlchemy: boolean = false) => {
-    type Section = { title: string; content: string[]; startIdx: number };
-
-    const lines = content.split('\n');
-    const sections: React.ReactElement[] = [];
-    let currentSection: Section | null = null;
-
-    const pushSection = (section: Section) => {
-      const sectionContent = section.content.join('\n');
-      const sectionWithHeader = `## ${section.title}\n${sectionContent}`;
-
-      sections.push(
-        <div key={section.startIdx} className="section-wrapper">
-          <div className="flex items-center gap-3 mb-4">
-            <h2 className={`text-2xl font-bold mt-8 ${isAlchemy ? 'text-warning' : 'text-gray-900'}`}>
-              {section.title}
-            </h2>
-            <SectionCopyButton
-              sectionTitle={section.title}
-              sectionContent={sectionWithHeader}
-            />
-          </div>
-          <div dangerouslySetInnerHTML={{ __html: renderLines(section.content, isAlchemy) }} />
-        </div>
-      );
-    };
-
-    lines.forEach((line, idx) => {
-      if (line.startsWith('## ')) {
-        // Save previous section
-        if (currentSection) {
-          pushSection(currentSection);
-        }
-
-        // Start new section
-        currentSection = {
-          title: line.substring(3),
-          content: [],
-          startIdx: idx
-        };
-      } else if (currentSection) {
-        currentSection.content.push(line);
-      }
-    });
-
-    // Add last section
-    if (currentSection) {
-      pushSection(currentSection);
-    }
-
-    return sections;
-  };
-
-  // Escape HTML entities to prevent XSS
+  // Escape HTML entities
   const escapeHtml = (text: string): string => {
     return text
       .replace(/&/g, '&amp;')
@@ -185,12 +148,9 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
       .replace(/'/g, '&#039;');
   };
 
-  // Render inline markdown (bold, italic) after escaping
   const renderInline = (text: string): string => {
     let escaped = escapeHtml(text);
-    // Bold: **text**
     escaped = escaped.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    // Italic: *text*
     escaped = escaped.replace(/\*(.*?)\*/g, '<em>$1</em>');
     return escaped;
   };
@@ -218,6 +178,44 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
       .join('');
   };
 
+  const parseSections = (content: string, isAlchemy: boolean = false) => {
+    type Section = { title: string; content: string[]; startIdx: number };
+    const lines = content.split('\n');
+    const sections: React.ReactElement[] = [];
+    let currentSection: Section | null = null;
+
+    const pushSection = (section: Section) => {
+      const sectionContent = section.content.join('\n');
+      const sectionWithHeader = `## ${section.title}\n${sectionContent}`;
+      sections.push(
+        <div key={section.startIdx} className="section-wrapper">
+          <div className="flex items-center gap-3 mb-4">
+            <h2 className={`text-2xl font-bold mt-8 ${isAlchemy ? 'text-warning' : 'text-gray-900'}`}>
+              {section.title}
+            </h2>
+            <SectionCopyButton sectionTitle={section.title} sectionContent={sectionWithHeader} />
+          </div>
+          <div dangerouslySetInnerHTML={{ __html: renderLines(section.content, isAlchemy) }} />
+        </div>
+      );
+    };
+
+    lines.forEach((line, idx) => {
+      if (line.startsWith('## ')) {
+        if (currentSection) pushSection(currentSection);
+        currentSection = { title: line.substring(3), content: [], startIdx: idx };
+      } else if (currentSection) {
+        currentSection.content.push(line);
+      }
+    });
+
+    if (currentSection) pushSection(currentSection);
+    return sections;
+  };
+
+  // Can the user click the alchemy tab?
+  const canViewAlchemy = alchemyAccess === 'full' && hasAlchemy;
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -231,16 +229,10 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
               <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link
-                href={`/chat/${decisionId}`}
-                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-              >
+              <Link href={`/chat/${decisionId}`} className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
                 Back to Chat
               </Link>
-              <Link
-                href="/dashboard"
-                className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-              >
+              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
                 Dashboard
               </Link>
             </div>
@@ -255,44 +247,20 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
           <div className="p-8 border-b border-gray-200">
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {document.title}
-                </h1>
-                <p className="text-sm text-gray-600">
-                  Generated on {mounted ? createdDate : ''}
-                </p>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">{document.title}</h1>
+                <p className="text-sm text-gray-600">Generated on {mounted ? createdDate : ''}</p>
               </div>
-
-              {/* Download Actions */}
               <div className="flex items-center gap-2 ml-4">
-                <button
-                  onClick={copyToClipboard}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  title="Copy to clipboard"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+                <button onClick={copyToClipboard} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2" title="Copy to clipboard">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                   Copy
                 </button>
-                <button
-                  onClick={downloadText}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  title="Download as plain text"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                <button onClick={downloadText} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2" title="Download as plain text">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                   TXT
                 </button>
-                <button
-                  onClick={downloadMarkdown}
-                  className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2"
-                  title="Download as markdown"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
+                <button onClick={downloadMarkdown} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2" title="Download as markdown">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                   Download MD
                 </button>
               </div>
@@ -318,12 +286,12 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
               </button>
 
               <button
-                onClick={() => hasAlchemyAccess && hasAlchemy && setActiveTab('alchemy')}
-                disabled={!hasAlchemyAccess || !hasAlchemy}
+                onClick={() => canViewAlchemy && setActiveTab('alchemy')}
+                disabled={!canViewAlchemy}
                 className={`flex-1 px-6 py-4 text-sm font-semibold transition-all ${
-                  activeTab === 'alchemy' && hasAlchemyAccess && hasAlchemy
+                  activeTab === 'alchemy' && canViewAlchemy
                     ? 'text-warning border-b-2 border-warning bg-alchemy-bg'
-                    : !hasAlchemyAccess || !hasAlchemy
+                    : !canViewAlchemy
                     ? 'text-gray-400 cursor-not-allowed opacity-60 relative'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                 }`}
@@ -331,12 +299,12 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                 <div className="flex items-center justify-center gap-2">
                   <span>⚗️</span>
                   <span>Alchemy Insights</span>
-                  {(!hasAlchemyAccess || !hasAlchemy) && (
+                  {!canViewAlchemy && (
                     <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">🔒 Premium</span>
                   )}
                 </div>
                 <p className="text-xs mt-1">
-                  {hasAlchemyAccess && hasAlchemy ? 'Counterintuitive Options' : 'Upgrade to unlock'}
+                  {canViewAlchemy ? 'Counterintuitive Options' : 'Upgrade to unlock'}
                 </p>
               </button>
             </div>
@@ -347,17 +315,15 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
             {activeTab === 'strategic' ? (
               <div>
                 <div className="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-xl">
-                  <h3 className="text-sm font-semibold text-primary-900 mb-2">
-                    📊 Strategic Analysis — Sections 1-7
-                  </h3>
+                  <h3 className="text-sm font-semibold text-primary-900 mb-2">📊 Strategic Analysis — Sections 1-7</h3>
                   <p className="text-sm text-primary-800 mb-3">
                     This is your board-ready strategic document using the SCQA framework (Situation, Complication, Question, Answer).
                   </p>
                   <div className="text-xs text-primary-700 space-y-1">
-                    <p><strong>What's included:</strong></p>
+                    <p><strong>What&apos;s included:</strong></p>
                     <ul className="ml-4 space-y-0.5">
                       <li>• Executive Summary (SCQA)</li>
-                      <li>• Situation Analysis & Problem Diagnosis</li>
+                      <li>• Situation Analysis &amp; Problem Diagnosis</li>
                       <li>• 3 Strategic Options with pros/cons</li>
                       <li>• Clear Recommendation with rationale</li>
                       <li>• 30-60-90 Day Implementation Roadmap</li>
@@ -369,8 +335,61 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                 <div className="prose prose-slate max-w-none">
                   {parseSections(strategicContent, false)}
                 </div>
+
+                {/* ── Alchemy teaser: 'teased' → headings visible, body blurred ── */}
+                {alchemyAccess === 'teased' && hasAlchemy && (
+                  <div className="mt-12 border-t-2 border-amber-300 pt-8">
+                    <div className="bg-alchemy-bg border border-alchemy-border rounded-xl p-6 relative overflow-hidden">
+                      <div className="flex items-center gap-2 mb-4">
+                        <span className="text-2xl">🔒</span>
+                        <h3 className="text-xl font-bold text-alchemy-text">Behavioural Alchemy — The Curveball</h3>
+                      </div>
+
+                      {/* Show headings visibly, placeholder bars for blurred body */}
+                      <div className="space-y-4 mb-6">
+                        {extractAlchemyHeadings(alchemyContent).map((heading, i) => (
+                          <div key={i}>
+                            <h4 className="font-semibold text-amber-900 mb-1">{heading}</h4>
+                            <div className="h-4 bg-amber-200/50 rounded blur-sm" />
+                            <div className="h-4 bg-amber-200/40 rounded blur-sm mt-1 w-4/5" />
+                            <div className="h-4 bg-amber-200/30 rounded blur-sm mt-1 w-3/5" />
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Upgrade overlay */}
+                      <div className="bg-white/90 backdrop-blur-sm border border-amber-300 rounded-lg p-6 text-center">
+                        <p className="text-amber-900 font-semibold mb-2">
+                          Unlock Behavioural Alchemy insights with Professional or Founding Leader
+                        </p>
+                        <p className="text-sm text-amber-800 mb-4">
+                          See the counterintuitive moves your competitors won&apos;t consider.
+                        </p>
+                        <Link
+                          href="/pricing"
+                          className="inline-block px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold shadow-sm"
+                        >
+                          Upgrade to see the unconventional moves →
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ── Compact upgrade banner for 'none' (Starter tier) ── */}
+                {alchemyAccess === 'none' && (
+                  <div className="mt-8 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center">
+                    <p className="text-gray-700 text-sm">
+                      Want to see what a behavioural strategist would suggest?{' '}
+                      <Link href="/pricing" className="text-primary-600 hover:text-primary-700 font-semibold">
+                        Upgrade to Professional
+                      </Link>{' '}
+                      for Behavioural Alchemy insights in every report.
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : hasAlchemyAccess && hasAlchemy ? (
+            ) : canViewAlchemy ? (
               <div>
                 <div className="mb-6 p-4 bg-alchemy-bg border border-alchemy-border rounded-xl">
                   <div className="flex items-center gap-2 mb-2">
@@ -381,7 +400,7 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                   </div>
                   <p className="text-sm text-alchemy-text mb-3">
                     These behavioral insights challenge conventional thinking. Most business problems have a
-                    psychological dimension that rational analysis misses. These counterintuitive options explore what others won't consider.
+                    psychological dimension that rational analysis misses.
                   </p>
                   <div className="text-xs text-alchemy-text space-y-1">
                     <p><strong>The Four Lenses:</strong></p>
@@ -391,7 +410,6 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                       <li>• <strong>The Signal Lens</strong> — Make it feel valuable without changing substance</li>
                       <li>• <strong>The Small Bet Lens</strong> — Low-cost interventions with outsized impact</li>
                     </ul>
-                    <p className="mt-2 italic">This is what differentiates QEP AISolve from standard consultants.</p>
                   </div>
                 </div>
 
@@ -399,67 +417,7 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                   {parseSections(alchemyContent, true)}
                 </div>
               </div>
-            ) : (
-              <div className="max-w-2xl mx-auto text-center py-16">
-                <div className="mb-8">
-                  <span className="text-6xl">⚗️</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Unlock Counterintuitive Options
-                </h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  The Alchemy section provides behavioral insights that challenge conventional thinking.
-                  Most consultants give you the rational answer. We give you options they won't consider.
-                </p>
-
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 mb-8">
-                  <h4 className="font-semibold text-amber-900 mb-3">
-                    What You're Missing:
-                  </h4>
-                  <div className="text-left text-sm text-amber-800 space-y-2">
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Opposite Lens</strong> — What if we did the exact reverse of the obvious solution?
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Perception Lens</strong> — Change how it feels rather than what it is
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Signal Lens</strong> — Make it feel valuable without changing substance
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-2">
-                      <span className="text-amber-600">•</span>
-                      <div>
-                        <strong>The Small Bet Lens</strong> — Micro-interventions under $10K with outsized impact
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    <strong>Alchemy insights are included for users who pay at or above their segment average.</strong>
-                  </p>
-                  <Link
-                    href="/pricing"
-                    className="inline-block px-8 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors font-semibold shadow-sm"
-                  >
-                    Upgrade to Unlock Alchemy
-                  </Link>
-                  <p className="text-xs text-gray-500">
-                    Most users pay $50-150/month. You decide what it's worth.
-                  </p>
-                </div>
-              </div>
-            )}
+            ) : null}
           </div>
 
           {/* Actions */}
@@ -479,29 +437,20 @@ export default function DocumentClient({ decisionId, document, hasAlchemyAccess 
                 onClick={handleRegenerate}
                 disabled={regenerating}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                title="Regenerate document with latest conversation insights"
               >
                 {regenerating ? (
                   <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     Regenerating...
                   </>
                 ) : (
                   <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                     Regenerate
                   </>
                 )}
               </button>
-              <Link
-                href={`/chat/${decisionId}`}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm"
-              >
+              <Link href={`/chat/${decisionId}`} className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium shadow-sm">
                 Continue Conversation
               </Link>
             </div>

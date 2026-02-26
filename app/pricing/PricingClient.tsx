@@ -3,76 +3,51 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import PWYWSlider from '@/components/pricing/PWYWSlider';
-import SegmentAnchors from '@/components/pricing/SegmentAnchors';
-import BeatTheAverage from '@/components/pricing/BeatTheAverage';
+import { TIERS } from '@/lib/tiers';
+import type { TierKey } from '@/lib/tiers';
 
 interface PricingClientProps {
-  user: any;
-  userData: any;
-  segments: Array<{
-    segment: string;
-    average_payment: number;
-    median_payment: number;
-  }>;
+  userId: string;
+  currentTier: TierKey;
+  foundingLeaderRemaining: number;
 }
 
-export default function PricingClient({ user, userData, segments }: PricingClientProps) {
+export default function PricingClient({ userId, currentTier, foundingLeaderRemaining }: PricingClientProps) {
   const searchParams = useSearchParams();
-  const expired = searchParams.get('expired') === 'true';
-
-  const [selectedAmount, setSelectedAmount] = useState(50);
-  const [selectedSegment, setSelectedSegment] = useState<string>('solopreneur');
-  const [isProcessing, setIsProcessing] = useState(false);
+  const upgraded = searchParams.get('upgraded') === 'true';
   const [mounted, setMounted] = useState(false);
+  const [faqOpen, setFaqOpen] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  const currentSegment = segments.find(s => s.segment === selectedSegment);
-  const averageAmount = currentSegment?.average_payment || 50;
+  const handleUpgrade = (tier: TierKey) => {
+    const config = TIERS[tier];
+    if (!config.payment_link) return;
 
-  const isTrialActive = userData?.payment_tier === 'trial' &&
-    new Date(userData.trial_ends_at) > new Date();
-
-  const trialExpired = userData?.payment_tier === 'trial' &&
-    new Date(userData.trial_ends_at) < new Date();
-
-  // Format trial end date consistently
-  const trialEndDate = userData?.trial_ends_at
-    ? new Date(userData.trial_ends_at).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric'
-      })
-    : '';
-
-  const handleCheckout = async () => {
-    setIsProcessing(true);
-
-    try {
-      const response = await fetch('/api/stripe/create-checkout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          amount: selectedAmount,
-          segment: selectedSegment,
-        }),
-      });
-
-      const { url } = await response.json();
-
-      if (url) {
-        window.location.href = url;
-      }
-    } catch {
-      alert('Failed to start checkout. Please try again.');
-      setIsProcessing(false);
-    }
+    const url = new URL(config.payment_link);
+    url.searchParams.set('client_reference_id', userId);
+    window.location.href = url.toString();
   };
+
+  const faqs = [
+    {
+      id: 'chatgpt',
+      q: 'How is this different from ChatGPT?',
+      a: "You'll get a wall of text with no structure and no strategic lens. Try both — you'll feel the difference. QEP AISolve gives you a consultancy-grade SCQA document with structured options, a 90-day roadmap, and risk mitigation — not a generic essay.",
+    },
+    {
+      id: 'consultant',
+      q: 'How is this different from a consultant?',
+      a: "A consultant gives you one answer after weeks. We give you structured options in minutes — including the unconventional ones they'd never propose. And at a fraction of the cost.",
+    },
+    {
+      id: 'worth',
+      q: 'Is it worth $79/month?',
+      a: "One good strategic insight pays for years of subscription. The question isn't cost — it's whether you'll use it.",
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -86,147 +61,177 @@ export default function PricingClient({ user, userData, segments }: PricingClien
               </div>
               <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
             </Link>
-            <Link
-              href="/dashboard"
-              className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-            >
+            <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
               Back to Dashboard
             </Link>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Trial Expired Banner */}
-        {(expired || trialExpired) && (
-          <div className="mb-8 bg-warning/10 border-2 border-warning rounded-xl p-6 shadow-sm">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 text-warning text-2xl">⏰</div>
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  Your 28-Day Trial Has Ended
-                </h3>
-                <p className="text-gray-700 mb-4">
-                  To continue accessing strategic consultations and document generation, please choose a payment plan below.
-                  We use Pay What You Want pricing because we believe in letting value speak for itself.
-                </p>
-                <p className="text-sm text-gray-600">
-                  <strong>Good news:</strong> All your previous decisions and documents are saved and will be accessible once you activate a plan.
-                </p>
-              </div>
-            </div>
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Success banner */}
+        {upgraded && mounted && (
+          <div className="mb-8 bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+            <p className="text-green-800 font-semibold">Welcome aboard! Your subscription is active.</p>
+          </div>
+        )}
+
+        {/* Free CTA at top */}
+        {currentTier === 'free' && (
+          <div className="mb-10 text-center">
+            <p className="text-lg text-gray-700 mb-3">
+              Try it free. One strategic report on your real business challenge. No credit card required.
+            </p>
+            <Link
+              href="/onboarding"
+              className="inline-block px-8 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold shadow-sm text-lg"
+            >
+              Get Your Free Report
+            </Link>
           </div>
         )}
 
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Pay What It's Worth
-          </h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Choose Your Plan</h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            {isTrialActive ? (
-              <>
-                Your trial ends on {mounted ? trialEndDate : ''}.
-                Choose what to pay monthly — $10 minimum, you decide the rest.
-              </>
-            ) : (
-              <>
-                Choose what to pay monthly — $10 minimum, you decide the rest.
-              </>
-            )}
+            Strategic clarity in minutes, not months.
           </p>
         </div>
 
-        {/* Pricing Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8">
-          {/* Segment Selection */}
-          <div className="mb-8">
-            <SegmentAnchors
-              segments={segments}
-              selectedSegment={selectedSegment}
-              onSegmentSelect={setSelectedSegment}
-            />
-          </div>
-
-          {/* Amount Slider */}
-          <div className="mb-8">
-            <PWYWSlider
-              onAmountChange={setSelectedAmount}
-              initialAmount={selectedAmount}
-              minAmount={10}
-              maxAmount={500}
-            />
-          </div>
-
-          {/* Beat the Average Prompt */}
-          <div className="mb-8">
-            <BeatTheAverage
-              userAmount={selectedAmount}
-              averageAmount={averageAmount}
-              onUpgrade={(newAmount) => setSelectedAmount(newAmount)}
-            />
-          </div>
-
-          {/* What You Get */}
-          <div className="mb-8 p-6 bg-primary-50 border border-primary-200 rounded-xl">
-            <h3 className="font-semibold text-primary-900 mb-3">
-              What You Get:
-            </h3>
-            <ul className="space-y-2 text-sm text-primary-800">
-              <li className="flex items-start gap-2">
-                <span className="text-primary-600 mt-0.5">✓</span>
-                <span><strong>Unlimited strategic consultations</strong> — No query limits</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary-600 mt-0.5">✓</span>
-                <span><strong>Board-ready documents</strong> — SCQA framework with 90-day roadmaps</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-primary-600 mt-0.5">✓</span>
-                <span><strong>Risk mitigation strategies</strong> — Identify and plan for potential pitfalls</span>
-              </li>
-              {selectedAmount >= averageAmount && (
-                <li className="flex items-start gap-2">
-                  <span className="text-warning mt-0.5">⚗️</span>
-                  <span><strong>Alchemy insights (Premium)</strong> — Counterintuitive options most won't consider</span>
-                </li>
-              )}
+        {/* ── Three-tier cards ── */}
+        <div className="grid md:grid-cols-3 gap-8 mb-16">
+          {/* Starter */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col">
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Starter</h2>
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="text-4xl font-bold text-gray-900">$29</span>
+              <span className="text-gray-500">/month</span>
+            </div>
+            <p className="text-gray-600 text-sm mb-6">{TIERS.starter.description}</p>
+            <ul className="space-y-3 text-sm text-gray-700 mb-8 flex-1">
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>3 strategic reports per month</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>Strategy module</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>SCQA structured documents</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>90-day implementation roadmaps</li>
             </ul>
+            <button
+              onClick={() => handleUpgrade('starter')}
+              disabled={currentTier === 'starter'}
+              className="w-full py-3 rounded-lg font-semibold transition-colors border border-primary-600 text-primary-600 hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {currentTier === 'starter' ? 'Current Plan' : 'Start with Starter'}
+            </button>
           </div>
 
-          {/* CTA Button */}
-          <button
-            onClick={handleCheckout}
-            disabled={isProcessing}
-            className="w-full py-4 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-semibold text-lg disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          >
-            {isProcessing ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              `Subscribe for $${selectedAmount}/month`
-            )}
-          </button>
+          {/* Professional — highlighted */}
+          <div className="bg-white rounded-xl border-2 border-primary-600 shadow-lg p-8 flex flex-col relative">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-xs font-bold px-4 py-1 rounded-full uppercase tracking-wider">
+              Most Popular
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Professional</h2>
+            <div className="flex items-baseline gap-1 mb-4">
+              <span className="text-4xl font-bold text-gray-900">$79</span>
+              <span className="text-gray-500">/month</span>
+            </div>
+            <p className="text-gray-600 text-sm mb-6">{TIERS.professional.description}</p>
+            <ul className="space-y-3 text-sm text-gray-700 mb-8 flex-1">
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>Unlimited strategic reports</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>Strategy + Marketing + Sales modules</li>
+              <li className="flex items-start gap-2 font-semibold"><span className="text-amber-500 mt-0.5">⚗️</span>Behavioural Alchemy — counterintuitive options in every report</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>SCQA structured documents</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>90-day implementation roadmaps</li>
+            </ul>
+            <button
+              onClick={() => handleUpgrade('professional')}
+              disabled={currentTier === 'professional'}
+              className="w-full py-3 rounded-lg font-semibold transition-colors bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {currentTier === 'professional' ? 'Current Plan' : 'Go Professional'}
+            </button>
+          </div>
 
-          <p className="text-xs text-center text-gray-500 mt-4">
-            Cancel anytime. We practice what we preach: unconventional thinking includes unconventional pricing.
-          </p>
+          {/* Founding Leader */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8 flex flex-col">
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Founding Leader</h2>
+            <div className="flex items-baseline gap-1 mb-2">
+              <span className="text-4xl font-bold text-gray-900">$149</span>
+              <span className="text-gray-500">/month</span>
+            </div>
+            <p className="text-xs text-amber-700 font-semibold mb-4">
+              {mounted ? `${foundingLeaderRemaining} of 100 slots remaining` : 'Limited to 100 founders'}
+            </p>
+            <p className="text-gray-600 text-sm mb-6">{TIERS.founding_leader.description}</p>
+            <ul className="space-y-3 text-sm text-gray-700 mb-8 flex-1">
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>Everything in Professional</li>
+              <li className="flex items-start gap-2"><span className="text-primary-600 mt-0.5">✓</span>Innovation, Operations, HR, Finance modules included free when launched</li>
+              <li className="flex items-start gap-2 font-semibold"><span className="text-amber-500 mt-0.5">🔒</span>Founding Leader pricing locked for life</li>
+            </ul>
+            <button
+              onClick={() => handleUpgrade('founding_leader')}
+              disabled={currentTier === 'founding_leader' || foundingLeaderRemaining <= 0}
+              className="w-full py-3 rounded-lg font-semibold transition-colors border border-amber-600 text-amber-700 hover:bg-amber-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {currentTier === 'founding_leader'
+                ? 'Current Plan'
+                : foundingLeaderRemaining <= 0
+                ? 'Sold Out'
+                : 'Claim Your Founding Spot'}
+            </button>
+          </div>
         </div>
 
-        {/* Philosophy */}
-        <div className="text-center text-sm text-gray-600">
-          <p className="mb-2">
-            <strong>Why Pay What You Want?</strong>
+        {/* ── Messaging section ── */}
+        <div className="text-center mb-16">
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Strategic clarity in minutes, not months.</h2>
+          <p className="text-gray-600 max-w-3xl mx-auto mb-10">
+            QEP AISolve gives you consultancy-grade analysis on Strategy, Marketing, and Sales — plus the unconventional options consultants rarely suggest.
           </p>
-          <p className="max-w-2xl mx-auto">
-            We're confident enough in our unconventional approach to price unconventionally.
-            Most users pay $50-150/month. You decide what the strategic insights are worth to you.
-          </p>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            <div className="text-center">
+              <div className="text-3xl mb-3">🏗️</div>
+              <h3 className="font-semibold text-gray-900 mb-1">Structured, not scattered</h3>
+              <p className="text-sm text-gray-600">Built on proven strategic frameworks, not generic AI guesswork</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl mb-3">⚡</div>
+              <h3 className="font-semibold text-gray-900 mb-1">Fast, not slow</h3>
+              <p className="text-sm text-gray-600">Get structured strategic options in the time it takes to drink your coffee</p>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl mb-3">🎯</div>
+              <h3 className="font-semibold text-gray-900 mb-1">Strategy + Surprise</h3>
+              <p className="text-sm text-gray-600">Every report shows conventional wisdom AND the behavioural curveball your competitors won&apos;t see</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── FAQ / Objection handling ── */}
+        <div className="max-w-2xl mx-auto mb-16">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Common Questions</h2>
+          <div className="space-y-3">
+            {faqs.map((faq) => (
+              <div key={faq.id} className="bg-white border border-gray-200 rounded-lg">
+                <button
+                  onClick={() => setFaqOpen(faqOpen === faq.id ? null : faq.id)}
+                  className="w-full flex items-center justify-between p-4 text-left"
+                >
+                  <span className="font-semibold text-gray-900">{faq.q}</span>
+                  <svg
+                    className={`w-5 h-5 text-gray-500 transition-transform ${faqOpen === faq.id ? 'rotate-180' : ''}`}
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {faqOpen === faq.id && (
+                  <div className="px-4 pb-4 text-sm text-gray-700">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </main>
     </div>
