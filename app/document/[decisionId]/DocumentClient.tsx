@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { SectionCopyButton } from '@/components/document/SectionCopyButton';
+import { AppHeader } from '@/components/layout/AppHeader';
 
 interface DocumentClientProps {
   decisionId: string;
@@ -16,9 +17,12 @@ interface DocumentClientProps {
   alchemyAccess: 'none' | 'teased' | 'full';
   /** Raw alchemy markdown stored separately in DB (for teased mode) */
   alchemyRaw: string;
+  userEmail?: string;
+  userTier?: string;
+  hasStripe?: boolean;
 }
 
-export default function DocumentClient({ decisionId, document, alchemyAccess, alchemyRaw }: DocumentClientProps) {
+export default function DocumentClient({ decisionId, document, alchemyAccess, alchemyRaw, userEmail, userTier, hasStripe }: DocumentClientProps) {
   const [activeTab, setActiveTab] = useState<'strategic' | 'alchemy'>('strategic');
   const [mounted, setMounted] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
@@ -218,27 +222,7 @@ export default function DocumentClient({ decisionId, document, alchemyAccess, al
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">Q</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
-            </Link>
-            <div className="flex items-center gap-4">
-              <Link href={`/chat/${decisionId}`} className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                Back to Chat
-              </Link>
-              <Link href="/dashboard" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                Dashboard
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <AppHeader email={userEmail} tier={userTier} hasStripe={hasStripe} />
 
       {/* Document */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

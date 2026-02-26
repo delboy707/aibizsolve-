@@ -16,7 +16,7 @@ export default async function PricingPage() {
   // Fetch user data
   const { data: userData } = await supabase
     .from('users')
-    .select('subscription_tier')
+    .select('subscription_tier, stripe_customer_id')
     .eq('id', user.id)
     .single();
 
@@ -39,6 +39,8 @@ export default async function PricingPage() {
         userId={user.id}
         currentTier={currentTier}
         foundingLeaderRemaining={foundingLeaderRemaining}
+        userEmail={user.email || ''}
+        hasStripe={!!userData?.stripe_customer_id}
       />
     </Suspense>
   );
