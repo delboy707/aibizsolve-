@@ -2,7 +2,33 @@
 
 import Link from 'next/link';
 
-const tiers = [
+interface Tier {
+  name: string;
+  price: number;
+  tagline: string;
+  cta: string;
+  href: string;
+  popular: boolean;
+  features: string[];
+  lockedFeature?: string;
+}
+
+const tiers: Tier[] = [
+  {
+    name: 'Free',
+    price: 0,
+    tagline: 'Try it on a real problem',
+    cta: 'Get Your Free Report',
+    href: '/auth?mode=signup',
+    popular: false,
+    features: [
+      '1 strategic report',
+      'Strategy module',
+      'SCQA framework document',
+      '90-day implementation roadmap',
+    ],
+    lockedFeature: 'Behavioural Alchemy insight',
+  },
   {
     name: 'Starter',
     price: 29,
@@ -75,24 +101,24 @@ export default function PricingClient() {
       </header>
 
       {/* Main Content */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center mb-14">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
             Simple, transparent pricing
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            28-day free trial on all plans. No credit card required.
+            Try it free — get one real strategic report with no time limit. No credit card required.
           </p>
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
           {tiers.map((tier) => (
             <div
               key={tier.name}
-              className={`relative bg-white rounded-2xl border-2 p-8 flex flex-col ${
+              className={`relative bg-white rounded-2xl border-2 p-6 flex flex-col ${
                 tier.popular
-                  ? 'border-primary-600 shadow-lg md:scale-105'
+                  ? 'border-primary-600 shadow-lg lg:scale-105'
                   : 'border-gray-200 shadow-sm'
               }`}
             >
@@ -104,14 +130,20 @@ export default function PricingClient() {
                 </div>
               )}
 
-              <div className="mb-6">
+              <div className="mb-5">
                 <h2 className="text-xl font-bold text-gray-900 mb-1">{tier.name}</h2>
                 <p className="text-sm text-gray-500">{tier.tagline}</p>
               </div>
 
-              <div className="mb-6">
-                <span className="text-5xl font-bold text-gray-900">${tier.price}</span>
-                <span className="text-gray-500 ml-1">/month</span>
+              <div className="mb-5">
+                {tier.price === 0 ? (
+                  <span className="text-5xl font-bold text-gray-900">$0</span>
+                ) : (
+                  <>
+                    <span className="text-5xl font-bold text-gray-900">${tier.price}</span>
+                    <span className="text-gray-500 ml-1">/month</span>
+                  </>
+                )}
               </div>
 
               <ul className="space-y-3 mb-8 flex-1">
@@ -121,13 +153,26 @@ export default function PricingClient() {
                     <span className="text-gray-700 text-sm">{feature}</span>
                   </li>
                 ))}
+                {tier.lockedFeature && (
+                  <li className="flex items-start gap-3">
+                    <span className="text-gray-400 mt-0.5 flex-shrink-0">🔒</span>
+                    <span className="text-sm">
+                      <span className="text-gray-400">{tier.lockedFeature}</span>
+                      <span className="block text-xs text-primary-600 font-medium mt-0.5">
+                        Upgrade to unlock
+                      </span>
+                    </span>
+                  </li>
+                )}
               </ul>
 
               <Link
                 href={tier.href}
-                className={`block w-full text-center py-3 px-6 rounded-lg font-semibold text-base transition-colors ${
+                className={`block w-full text-center py-3 px-4 rounded-lg font-semibold text-sm transition-colors ${
                   tier.popular
                     ? 'bg-primary-600 text-white hover:bg-primary-700'
+                    : tier.price === 0
+                    ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
                     : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                 }`}
               >
