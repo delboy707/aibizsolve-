@@ -1,46 +1,29 @@
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
 import PricingClient from './PricingClient';
-import type { TierKey } from '@/lib/tiers';
 
 export default async function PricingPage() {
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect('/auth');
-  }
+  // Fetch user data only if logged in
+  const { data: userData } = user
+    ? await supabase.from('users').select('*').eq('id', user.id).single()
+    : { data: null };
 
-  // Fetch user data
-  const { data: userData } = await supabase
-    .from('users')
-    .select('subscription_tier, stripe_customer_id')
-    .eq('id', user.id)
-    .single();
-
-  // Fetch Founding Leader remaining slots
-  const { data: flConfig } = await supabase
-    .from('app_config')
-    .select('value')
-    .eq('key', 'founding_leader')
-    .single();
-
-  const flCount = (flConfig?.value as { count: number; cap: number })?.count ?? 0;
-  const flCap = (flConfig?.value as { count: number; cap: number })?.cap ?? 100;
-  const foundingLeaderRemaining = Math.max(0, flCap - flCount);
-
-  const currentTier = ((userData?.subscription_tier as string) || 'free') as TierKey;
+  // Fetch payment stats for segment anchors (public data)
+  const { data: segments } = await supabase
+    .from('payment_stats')
+    .select('*')
+    .order('segment');
 
   return (
     <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
       <PricingClient
-        userId={user.id}
-        currentTier={currentTier}
-        foundingLeaderRemaining={foundingLeaderRemaining}
-        userEmail={user.email || ''}
-        hasStripe={!!userData?.stripe_customer_id}
+        user={user}
+        userData={userData}
+        segments={segments || []}
       />
     </Suspense>
   );
