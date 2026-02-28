@@ -1,35 +1,10 @@
 import Link from "next/link";
+import SiteHeader from "@/components/layout/SiteHeader";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="border-b border-gray-200 bg-white sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">Q</span>
-              </div>
-              <span className="font-semibold text-gray-900 text-lg">QEP AISolve</span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Link href="/pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                Pricing
-              </Link>
-              <Link href="/auth" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                Sign In
-              </Link>
-              <Link
-                href="/auth?mode=signup"
-                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors font-semibold shadow-sm"
-              >
-                Get Started
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>
+      <SiteHeader />
 
       {/* Hero Section */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
