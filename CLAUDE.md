@@ -4,6 +4,43 @@
 
 ---
 
+## ⛔ PROTECTED FILES AND DIRECTORIES — DO NOT MODIFY
+
+The following files and directories contain production UI, UX, and AI Workflow
+logic that has been carefully built and tested. NO agent should modify these
+files unless explicitly instructed to do so by Derek in that specific task.
+
+### Protected UI/UX Files
+- src/components/**  (all UI components — do not touch styling, layout, or UX flows)
+- src/pages/**  (page-level components and routing)
+- src/app/**/page.tsx  (page-level components)
+- src/styles/**  (all CSS/Tailwind configuration)
+- src/hooks/**  (custom React hooks)
+- public/**  (static assets)
+
+### Protected Supabase AI Workflows
+- supabase/functions/**  (Edge Functions with AI workflow logic)
+- src/lib/ai/**  (AI integration code)
+- src/lib/supabase/**  (Supabase client configuration and helpers)
+
+### Protected Database Schema
+- supabase/migrations/**  (existing migrations — never modify, only add new ones)
+
+### What Agents CAN Do
+- ADD new files (new security headers, new middleware, new API routes)
+- ADD new Supabase migrations (never modify existing ones)
+- MODIFY configuration files (next.config.js, vercel.json, .env files)
+- READ any file for audit/review purposes
+
+### What Agents MUST NOT Do
+- Rewrite, restyle, or restructure existing React components
+- Change Supabase client initialization or AI workflow logic
+- Modify existing database migration files
+- Change authentication flow UI or logic
+- Alter any existing API routes unless the task specifically requires it
+
+---
+
 ## Standing Rules
 
 **Always provide exact links and prompts.** Never describe steps vaguely. Every instruction that requires the user to visit a URL, run a command, or enter text must include:
