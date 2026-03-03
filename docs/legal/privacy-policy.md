@@ -56,8 +56,8 @@ We store the strategic documents generated for you, including:
 
 When you subscribe, we collect:
 
-- Your chosen monthly payment amount (in USD)
-- Payment tier classification (trial, below average, average, above average)
+- Your subscription tier (Starter at $29/month, Professional at $79/month, or Executive at $149/month)
+- Payment tier classification (trial, Starter, Professional, Executive)
 - Stripe customer and subscription identifiers
 
 **We do not directly collect or store credit card numbers, CVVs, or bank account details.** All payment card data is handled exclusively by Stripe.
@@ -89,7 +89,7 @@ We may collect standard technical data including:
 | Process your business problems through AI analysis | Performance of our contract with you |
 | Process payments and manage subscriptions | Performance of our contract with you |
 | Send service-related notifications (billing, account changes) | Performance of our contract with you |
-| Calculate aggregate payment statistics for PWYW anchoring | Legitimate business interest |
+| Manage subscription tiers and billing | Legitimate business interest |
 | Improve Service reliability and fix bugs | Legitimate business interest |
 | Comply with legal obligations | Legal compliance |
 
@@ -212,7 +212,7 @@ We act as the data controller for personal data processed through the Service.
 |---------|---------------------|
 | Provide and operate the Service | Performance of contract (Art. 6(1)(b)) |
 | Process payments and manage subscriptions | Performance of contract (Art. 6(1)(b)) |
-| Calculate aggregate payment statistics | Legitimate interest (Art. 6(1)(f)) |
+| Manage subscription tiers and billing | Legitimate interest (Art. 6(1)(f)) |
 | Improve Service reliability | Legitimate interest (Art. 6(1)(f)) |
 | Comply with legal obligations | Legal obligation (Art. 6(1)(c)) |
 

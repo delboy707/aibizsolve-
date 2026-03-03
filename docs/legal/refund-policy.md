@@ -45,12 +45,12 @@ Because the Service includes a 28-day free trial, all paid subscriptions begin o
 
 ---
 
-## 5. Payment Amount Changes
+## 5. Tier Changes
 
-Under our Pay What You Want pricing model, you may adjust your monthly payment amount at any time (subject to the $10 minimum). If you lower your payment:
+You may upgrade or downgrade your subscription tier at any time. The available tiers are Starter ($29/month), Professional ($79/month), and Executive ($149/month).
 
-- The new amount takes effect on your next billing date
-- No refund is issued for the difference in the current period
+- **Upgrades** take effect immediately and are prorated for the remainder of your current billing period
+- **Downgrades** take effect on your next billing date; no refund is issued for the difference in the current period
 
 ---
 
