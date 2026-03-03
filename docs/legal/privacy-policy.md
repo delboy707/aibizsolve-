@@ -13,18 +13,16 @@
 QEP AI Solve is operated by:
 
 - **Company Name:** `[PLACEHOLDER: Registered company name]` ("we", "us", "our")
-- **Company Number:** `[PLACEHOLDER: Companies House number]`
-- **Registered Address:** `[PLACEHOLDER: Registered office address]`
-- **Data Protection Officer (DPO):** `[PLACEHOLDER: DPO name or role title]`
-- **DPO Contact Email:** `[PLACEHOLDER: e.g. dpo@qep-aisolve.app]`
-
-We are the data controller for the personal data processed through the QEP AI Solve service.
+- **EIN:** `[PLACEHOLDER: Employer Identification Number]`
+- **Principal Address:** `[PLACEHOLDER: Business address]`
+- **State of Incorporation:** Illinois
+- **Privacy Contact Email:** `[PLACEHOLDER: e.g. privacy@qep-aisolve.app]`
 
 ---
 
 ## 2. Overview
 
-This Privacy Policy explains how we collect, use, store, and protect your personal data when you use the QEP AI Solve platform. We are committed to protecting your privacy and handling your data in accordance with the UK General Data Protection Regulation (UK GDPR) and the Data Protection Act 2018.
+This Privacy Policy explains how we collect, use, store, and protect your personal information when you use the QEP AI Solve platform. We are committed to protecting your privacy and handling your data in accordance with applicable US federal and state privacy laws, including the Illinois Personal Information Protection Act (PIPA). For users located in the European Union or United Kingdom, additional rights and protections are described in Section 10 below.
 
 ---
 
@@ -58,7 +56,7 @@ We store the strategic documents generated for you, including:
 
 When you subscribe, we collect:
 
-- Your chosen monthly payment amount
+- Your chosen monthly payment amount (in USD)
 - Payment tier classification (trial, below average, average, above average)
 - Stripe customer and subscription identifiers
 
@@ -85,15 +83,15 @@ We may collect standard technical data including:
 
 ## 4. How We Use Your Data
 
-| Purpose | Lawful Basis (UK GDPR) |
-|---------|----------------------|
-| Provide and operate the Service | Performance of contract (Art. 6(1)(b)) |
-| Process your business problems through AI analysis | Performance of contract (Art. 6(1)(b)) |
-| Process payments and manage subscriptions | Performance of contract (Art. 6(1)(b)) |
-| Send service-related notifications (billing, account changes) | Performance of contract (Art. 6(1)(b)) |
-| Calculate aggregate payment statistics for PWYW anchoring | Legitimate interest (Art. 6(1)(f)) |
-| Improve Service reliability and fix bugs | Legitimate interest (Art. 6(1)(f)) |
-| Comply with legal obligations | Legal obligation (Art. 6(1)(c)) |
+| Purpose | Legal Basis |
+|---------|-------------|
+| Provide and operate the Service | Performance of our contract with you |
+| Process your business problems through AI analysis | Performance of our contract with you |
+| Process payments and manage subscriptions | Performance of our contract with you |
+| Send service-related notifications (billing, account changes) | Performance of our contract with you |
+| Calculate aggregate payment statistics for PWYW anchoring | Legitimate business interest |
+| Improve Service reliability and fix bugs | Legitimate business interest |
+| Comply with legal obligations | Legal compliance |
 
 ---
 
@@ -118,23 +116,21 @@ We use the following third-party sub-processors to deliver the Service:
 
 | Sub-Processor | Purpose | Data Processed | Location |
 |---------------|---------|---------------|----------|
-| **Supabase** | Authentication, database hosting, data storage | Account data, decisions, documents, usage data | `[PLACEHOLDER: Confirm Supabase region — e.g. EU (Frankfurt) or US]` |
+| **Supabase** | Authentication, database hosting, data storage | Account data, decisions, documents, usage data | `[PLACEHOLDER: Confirm Supabase region — e.g. US East]` |
 | **Anthropic (Claude API)** | AI processing — problem classification and strategic document generation | Problem statements, clarifying question responses, classification data | United States |
-| **Stripe** | Payment processing and subscription management | Email, payment amounts, card details (handled directly by Stripe) | United States (with EU infrastructure) |
+| **Stripe** | Payment processing and subscription management | Email, payment amounts, card details (handled directly by Stripe) | United States |
 | **Vercel** | Application hosting and delivery | Technical/request data | `[PLACEHOLDER: Confirm Vercel region]` |
-
-`[PLACEHOLDER: Derek — if Supabase and/or Vercel are hosted outside the UK/EEA, confirm that appropriate transfer mechanisms (e.g. Standard Contractual Clauses) are in place and reference them here.]`
 
 ---
 
-## 7. International Data Transfers
+## 7. Data Sharing and Disclosure
 
-Some of our sub-processors are based in or process data in the United States. Where personal data is transferred outside the UK, we ensure appropriate safeguards are in place, including:
+We do not sell your personal information. We share your data only in the following circumstances:
 
-- Standard Contractual Clauses (SCCs) approved by the UK Information Commissioner's Office
-- The sub-processor's participation in relevant data protection frameworks
-
-`[PLACEHOLDER: Derek — confirm specific transfer mechanisms for each US-based sub-processor.]`
+- **Sub-processors:** As listed in Section 6, solely to deliver the Service
+- **Legal requirements:** If required by law, subpoena, court order, or governmental regulation
+- **Business transfers:** In connection with a merger, acquisition, or sale of assets (you will be notified of any change in ownership)
+- **With your consent:** When you explicitly authorize sharing
 
 ---
 
@@ -144,7 +140,7 @@ Some of our sub-processors are based in or process data in the United States. Wh
 |-----------|-----------------|
 | Account information | Retained while your account is active, deleted within 30 days of account deletion request |
 | Decisions and documents | Retained while your account is active; you may delete individual decisions at any time |
-| Payment records | Retained for 7 years after the transaction date to comply with UK tax and accounting obligations |
+| Payment records | Retained for 7 years after the transaction date to comply with US tax and accounting obligations |
 | Usage data | Retained for 12 months on a rolling basis |
 | Technical/server logs | Retained for 90 days |
 
@@ -152,56 +148,100 @@ When data is deleted, it is permanently removed from our active systems. Backup 
 
 ---
 
-## 9. Your Rights Under UK GDPR
+## 9. Your Rights (US Users)
 
-You have the following rights regarding your personal data:
+Depending on your state of residence, you may have the following rights:
 
-### 9.1 Right of Access
+### 9.1 Right to Know / Access
 
-You may request a copy of the personal data we hold about you. We will respond within one month.
+You may request a copy of the personal information we hold about you, including the categories of data collected, the purposes of collection, and the third parties with whom it is shared.
 
-### 9.2 Right to Rectification
+### 9.2 Right to Delete
 
-You may request correction of inaccurate or incomplete personal data.
+You may request deletion of your personal information. We will comply unless we have a legal obligation to retain it (e.g. tax records).
 
-### 9.3 Right to Erasure ("Right to Be Forgotten")
+### 9.3 Right to Correct
 
-You may request deletion of your personal data. We will comply unless we have a lawful obligation to retain it (e.g. tax records).
+You may request correction of inaccurate personal information.
 
 ### 9.4 Right to Data Portability
 
 You may request your data in a structured, commonly used, machine-readable format (JSON or CSV). This includes your decisions, documents, and account data.
 
-### 9.5 Right to Restrict Processing
+### 9.5 Right to Opt Out of Sale
 
-You may request that we restrict processing of your data in certain circumstances (e.g. while a dispute is being resolved).
+We do not sell your personal information. No opt-out is necessary, but you may contact us to confirm this at any time.
 
-### 9.6 Right to Object
+### 9.6 Non-Discrimination
 
-You may object to processing based on legitimate interests. We will cease processing unless we have compelling legitimate grounds.
+We will not discriminate against you for exercising any of your privacy rights.
 
-### 9.7 Rights Related to Automated Decision-Making
+### California Residents (CCPA/CPRA)
 
-The AI classification and document generation features of the Service involve automated processing. However, these outputs are decision-support tools provided for your consideration — no binding decisions are made about you solely by automated means.
+If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA) as amended by the California Privacy Rights Act (CPRA):
+
+- **Right to know** what personal information is collected, used, and shared
+- **Right to delete** personal information held by us and by our service providers
+- **Right to opt out of sale or sharing** — we do not sell or share your personal information for cross-context behavioral advertising
+- **Right to correct** inaccurate personal information
+- **Right to limit use of sensitive personal information** — we use sensitive information only as necessary to provide the Service
+
+To exercise these rights, contact us at `[PLACEHOLDER: privacy@qep-aisolve.app]`. We will respond within 45 days as required by the CCPA.
 
 ### How to Exercise Your Rights
 
-To exercise any of these rights, contact our Data Protection Officer:
+To exercise any of your privacy rights, contact us:
 
-**Email:** `[PLACEHOLDER: dpo@qep-aisolve.app]`
+**Email:** `[PLACEHOLDER: privacy@qep-aisolve.app]`
 
-We will respond to all requests within one month. If a request is complex, we may extend this by a further two months, and we will inform you of any extension within the first month.
-
-If you are not satisfied with our response, you have the right to lodge a complaint with the Information Commissioner's Office (ICO):
-
-- **Website:** https://ico.org.uk
-- **Telephone:** 0303 123 1113
+We will respond to all requests within 30 days (or 45 days for CCPA requests). If we need additional time, we will notify you.
 
 ---
 
-## 10. Data Security
+## 10. Additional Rights for EU/UK Users (GDPR)
 
-We implement appropriate technical and organisational measures to protect your personal data, including:
+If you are located in the European Union or United Kingdom, the following additional provisions apply under the General Data Protection Regulation (GDPR) and UK GDPR:
+
+### 10.1 Data Controller
+
+We act as the data controller for personal data processed through the Service.
+
+### 10.2 Lawful Bases for Processing
+
+| Purpose | Lawful Basis (GDPR) |
+|---------|---------------------|
+| Provide and operate the Service | Performance of contract (Art. 6(1)(b)) |
+| Process payments and manage subscriptions | Performance of contract (Art. 6(1)(b)) |
+| Calculate aggregate payment statistics | Legitimate interest (Art. 6(1)(f)) |
+| Improve Service reliability | Legitimate interest (Art. 6(1)(f)) |
+| Comply with legal obligations | Legal obligation (Art. 6(1)(c)) |
+
+### 10.3 Your GDPR Rights
+
+In addition to the rights in Section 9, you have:
+
+- **Right to restrict processing** in certain circumstances (e.g. while a dispute is being resolved)
+- **Right to object** to processing based on legitimate interests
+- **Rights related to automated decision-making** — the AI features of the Service are decision-support tools; no binding decisions are made about you solely by automated means
+
+### 10.4 International Data Transfers
+
+Our Service and sub-processors are primarily based in the United States. Where personal data is transferred from the EU/UK to the US, we ensure appropriate safeguards are in place, including:
+
+- Standard Contractual Clauses (SCCs) approved by the European Commission and/or UK Information Commissioner's Office
+- The sub-processor's participation in relevant data protection frameworks (e.g. EU-US Data Privacy Framework)
+
+`[PLACEHOLDER: Derek — confirm specific transfer mechanisms for each sub-processor.]`
+
+### 10.5 Supervisory Authority
+
+If you are not satisfied with our response to a privacy request, you have the right to lodge a complaint with your local supervisory authority. For UK residents, this is the Information Commissioner's Office (ICO) at https://ico.org.uk.
+
+---
+
+## 11. Data Security
+
+We implement appropriate technical and organizational measures to protect your personal information, including:
 
 - Encryption in transit (TLS/HTTPS) for all data
 - Encryption at rest for stored data via Supabase
@@ -213,36 +253,41 @@ No method of transmission or storage is 100% secure. If you become aware of a se
 
 ---
 
-## 11. Cookies
+## 12. Cookies
 
 `[PLACEHOLDER: Derek — confirm cookie usage. At minimum, Supabase Auth uses essential session cookies. If analytics tools (e.g. Vercel Analytics, PostHog) are added, a cookie consent mechanism will be required. Specify which cookies are used and their purposes.]`
 
-The Service uses essential cookies required for authentication and session management. These are strictly necessary and do not require consent.
+The Service uses essential cookies required for authentication and session management. These are strictly necessary for the Service to function.
 
 ---
 
-## 12. Children's Data
+## 13. Children's Data
 
-The Service is designed for business professionals and is not directed at individuals under the age of 18. We do not knowingly collect personal data from children. If we become aware that we have collected data from a child, we will delete it promptly.
+The Service is designed for business professionals and is not directed at individuals under the age of 18 (or 16 in the EU/UK). We do not knowingly collect personal information from children. If we become aware that we have collected data from a child, we will delete it promptly.
 
 ---
 
-## 13. Changes to This Policy
+## 14. Changes to This Policy
 
 We may update this Privacy Policy from time to time. We will notify you of material changes by email or through the Service at least 30 days before they take effect. The "Last updated" date at the top of this policy will be revised accordingly.
 
 ---
 
-## 14. Contact Us
+## 15. Governing Law
+
+This Privacy Policy is governed by the laws of **the State of Illinois, United States**, without regard to its conflict of law provisions.
+
+---
+
+## 16. Contact Us
 
 For any questions about this Privacy Policy or how we handle your data:
 
-**Data Protection Officer:** `[PLACEHOLDER: DPO name or role]`
-**Email:** `[PLACEHOLDER: dpo@qep-aisolve.app]`
+**Privacy Contact:** `[PLACEHOLDER: privacy@qep-aisolve.app]`
 
-**General enquiries:**
+**General inquiries:**
 **Email:** `[PLACEHOLDER: hello@qep-aisolve.app or similar]`
 
 `[PLACEHOLDER: Registered company name]`
-`[PLACEHOLDER: Registered office address]`
-`[PLACEHOLDER: Company number]`
+`[PLACEHOLDER: Business address]`
+`[PLACEHOLDER: EIN]`

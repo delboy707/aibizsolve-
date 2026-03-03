@@ -10,21 +10,13 @@
 
 ## 1. Overview
 
-This Refund Policy applies to all paid subscriptions to the QEP AI Solve service. We want you to be confident in the value you receive, which is why we offer a 30-day money-back guarantee for new subscribers and a straightforward cancellation process.
+This Refund Policy applies to all paid subscriptions to the QEP AI Solve service. We offer a 28-day free trial so you can evaluate the full Service before any payment is collected. Once you subscribe, the following cancellation and refund terms apply.
 
 ---
 
-## 2. 30-Day Money-Back Guarantee
+## 2. Free Trial
 
-If you are a **first-time subscriber** and are not satisfied with the Service, you may request a full refund within **30 days** of your first paid subscription charge.
-
-This guarantee applies:
-
-- Only to your first subscription period with QEP AI Solve
-- Only when requested within 30 days of the first charge (not the trial start date)
-- Once per customer/account
-
-After the 30-day guarantee period has passed, or for returning subscribers, standard cancellation terms apply (see below).
+The 28-day free trial provides full access to all features at no cost. No payment details are required to start a trial, and no charges are made during the trial period. If you do not subscribe after the trial, your account simply reverts to inactive status.
 
 ---
 
@@ -43,59 +35,60 @@ When you cancel:
 
 ## 4. No Partial Refunds
 
-We do not provide partial refunds for unused portions of a billing period. When you cancel mid-cycle:
+We do not provide refunds or credits for unused portions of a billing period. When you cancel mid-cycle:
 
 - You are not charged again
 - You keep access for the remainder of the period you have already paid for
 - No pro-rata refund is issued for remaining days
 
+Because the Service includes a 28-day free trial, all paid subscriptions begin only after you have had the opportunity to evaluate the Service at no cost.
+
 ---
 
 ## 5. Payment Amount Changes
 
-Under our Pay What You Want pricing model, you may adjust your monthly payment amount at any time (subject to the minimum threshold). If you lower your payment:
+Under our Pay What You Want pricing model, you may adjust your monthly payment amount at any time (subject to the $10 minimum). If you lower your payment:
 
 - The new amount takes effect on your next billing date
 - No refund is issued for the difference in the current period
 
 ---
 
-## 6. How to Request a Refund
+## 6. Billing Disputes
 
-To request a refund under the 30-day money-back guarantee:
+If you believe you have been charged in error, please contact us before initiating a chargeback with your bank:
 
 1. **Email us at:** `[PLACEHOLDER: e.g. support@qep-aisolve.app]`
 2. **Include in your email:**
    - Your account email address
-   - The reason for your refund request (optional, but helps us improve)
-3. **We will respond** within 3 business days to confirm your refund
-4. **Refunds are processed** back to your original payment method via Stripe within 5-10 business days
+   - A description of the billing issue
+3. **We will respond** within 3 business days to investigate and resolve the issue
+4. **If a correction is warranted**, it will be processed back to your original payment method via Stripe within 5-10 business days
 
 ---
 
 ## 7. Exceptions
 
-Refunds will **not** be provided in the following circumstances:
+No refunds or billing adjustments will be provided in the following circumstances:
 
 - Accounts terminated for violation of our [Terms of Service](./terms-of-service.md)
-- Requests made after the 30-day guarantee window (for first-time subscribers)
 - Chargebacks initiated without first contacting us — we ask that you reach out to us before disputing a charge with your bank
 
 ---
 
-## 8. Free Trial
+## 8. Governing Law
 
-The 28-day free trial does not involve any charges. No refund is applicable for the trial period since no payment is collected. If you do not subscribe after the trial, your account simply reverts to inactive status.
+This Refund Policy is governed by the laws of **the State of Illinois, United States**.
 
 ---
 
 ## 9. Contact Us
 
-For refund requests or billing questions:
+For billing questions or disputes:
 
 **Email:** `[PLACEHOLDER: support@qep-aisolve.app]`
 
-We aim to respond to all refund enquiries within 3 business days.
+We aim to respond to all billing inquiries within 3 business days.
 
 `[PLACEHOLDER: Registered company name]`
-`[PLACEHOLDER: Registered office address]`
+`[PLACEHOLDER: Business address]`

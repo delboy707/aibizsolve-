@@ -13,8 +13,9 @@
 QEP AI Solve is operated by:
 
 - **Company Name:** `[PLACEHOLDER: Registered company name]`
-- **Company Number:** `[PLACEHOLDER: Companies House number]`
-- **Registered Address:** `[PLACEHOLDER: Registered office address]`
+- **EIN:** `[PLACEHOLDER: Employer Identification Number]`
+- **Principal Address:** `[PLACEHOLDER: Business address]`
+- **State of Incorporation:** Illinois
 - **Contact Email:** `[PLACEHOLDER: e.g. legal@qep-aisolve.app]`
 
 ---
@@ -46,7 +47,7 @@ The Service is provided as a decision-support tool. Outputs are not professional
 
 ## 5. Accounts
 
-You must provide accurate and complete information when creating an account. You are responsible for maintaining the security of your account credentials. You must notify us immediately at `[PLACEHOLDER: contact email]` if you become aware of any unauthorised use of your account.
+You must provide accurate and complete information when creating an account. You are responsible for maintaining the security of your account credentials. You must notify us immediately at `[PLACEHOLDER: contact email]` if you become aware of any unauthorized use of your account.
 
 ---
 
@@ -60,7 +61,7 @@ New subscribers receive a 28-day free trial with full access to all features, in
 
 After the trial period, continued access requires a paid subscription under our Pay What You Want model:
 
-- **Minimum payment:** £10 per month `[PLACEHOLDER: Confirm currency and minimum amount]`
+- **Minimum payment:** $10 per month
 - **No maximum:** You choose what the Service is worth to you
 - **Billing cycle:** Monthly recurring, charged on the same date each month
 - **Payment method:** Credit or debit card via Stripe
@@ -110,7 +111,7 @@ You agree not to:
 
 1. Use the Service for any unlawful purpose or in violation of any applicable laws or regulations.
 2. Submit content that is defamatory, obscene, or infringes upon the rights of any third party.
-3. Attempt to gain unauthorised access to the Service, other accounts, or related systems.
+3. Attempt to gain unauthorized access to the Service, other accounts, or related systems.
 4. Reverse engineer, decompile, or disassemble any part of the Service.
 5. Use automated tools (bots, scrapers) to access the Service beyond the provided APIs.
 6. Resell, sublicense, or redistribute the Service or access to it without our written consent.
@@ -123,7 +124,7 @@ We reserve the right to suspend or terminate accounts that violate this Acceptab
 
 ## 9. Service Availability
 
-We aim to provide a reliable service but do not guarantee uninterrupted availability. The Service may be temporarily unavailable due to maintenance, updates, or circumstances beyond our reasonable control. We will endeavour to provide advance notice of planned downtime where practicable.
+We aim to provide a reliable service but do not guarantee uninterrupted availability. The Service may be temporarily unavailable due to maintenance, updates, or circumstances beyond our reasonable control. We will endeavor to provide advance notice of planned downtime where practicable.
 
 ---
 
@@ -149,7 +150,7 @@ In no event shall we be liable for any indirect, incidental, special, consequent
 
 - Death or personal injury caused by negligence
 - Fraud or fraudulent misrepresentation
-- Any other liability that cannot be excluded or limited under the laws of England and Wales
+- Any other liability that cannot be excluded or limited under the laws of the State of Illinois, United States
 
 ---
 
@@ -183,7 +184,7 @@ Upon termination, your right to access the Service ceases. We will retain your d
 
 ## 14. Governing Law and Disputes
 
-These terms are governed by and construed in accordance with the laws of **England and Wales**. Any disputes arising from these terms or the Service shall be subject to the exclusive jurisdiction of the courts of England and Wales.
+These terms are governed by and construed in accordance with the laws of **the State of Illinois, United States**, without regard to its conflict of law provisions. Any disputes arising from these terms or the Service shall be subject to the exclusive jurisdiction of the state and federal courts located in Illinois.
 
 ---
 
@@ -203,5 +204,5 @@ For questions about these terms, contact us at:
 **Email:** `[PLACEHOLDER: legal@qep-aisolve.app or similar]`
 
 `[PLACEHOLDER: Registered company name]`
-`[PLACEHOLDER: Registered office address]`
-`[PLACEHOLDER: Company number]`
+`[PLACEHOLDER: Business address]`
+`[PLACEHOLDER: EIN]`
