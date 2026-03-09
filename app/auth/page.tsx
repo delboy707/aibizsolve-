@@ -29,6 +29,7 @@ function AuthForm() {
       if (isResetPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth?mode=reset-callback`,
+          captchaToken: captchaToken ?? undefined,
         });
         if (error) throw error;
         setMessage('Check your email for the password reset link.');
