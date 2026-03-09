@@ -63,7 +63,7 @@ export default function ExamplePrompts({ onExampleClick }: ExamplePromptsProps) 
             </li>
             <li className="flex gap-3">
               <span className="font-bold">2.</span>
-              <span><strong>Claude asks 2-4 questions</strong> — To understand context, constraints, and what you've tried</span>
+              <span><strong>AI Solve asks 2-4 questions</strong> — To understand context, constraints, and what you've tried</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">3.</span>
