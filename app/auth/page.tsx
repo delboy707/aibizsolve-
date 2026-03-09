@@ -4,6 +4,7 @@ import { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 function AuthForm() {
   const searchParams = useSearchParams();
@@ -15,6 +16,7 @@ function AuthForm() {
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -37,6 +39,7 @@ function AuthForm() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
+          options: { captchaToken: captchaToken ?? undefined },
         });
 
         if (error) throw error;
@@ -49,6 +52,7 @@ function AuthForm() {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
+          options: { captchaToken: captchaToken ?? undefined },
         });
 
         if (error) throw error;
@@ -133,6 +137,12 @@ function AuthForm() {
                 {message}
               </div>
             )}
+
+            <Turnstile
+              siteKey="0x4AAAAAACoVezFPfRqG9AiG"
+              onSuccess={(token) => setCaptchaToken(token)}
+              onExpire={() => setCaptchaToken(null)}
+            />
 
             <button
               type="submit"
