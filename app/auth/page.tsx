@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useRef, Suspense } from 'react';
+import { useState, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Turnstile } from '@marsidev/react-turnstile';
 
 function AuthForm() {
   const searchParams = useSearchParams();
@@ -16,8 +15,6 @@ function AuthForm() {
   const [isResetPassword, setIsResetPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const turnstileRef = useRef<any>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -30,7 +27,6 @@ function AuthForm() {
       if (isResetPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth?mode=reset-callback`,
-          captchaToken: captchaToken ?? undefined,
         });
         if (error) throw error;
         setMessage('Check your email for the password reset link.');
@@ -41,7 +37,6 @@ function AuthForm() {
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { captchaToken: captchaToken ?? undefined },
         });
 
         if (error) throw error;
@@ -54,7 +49,6 @@ function AuthForm() {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
-          options: { captchaToken: captchaToken ?? undefined },
         });
 
         if (error) throw error;
@@ -67,8 +61,6 @@ function AuthForm() {
       setMessage(error.message);
     } finally {
       setLoading(false);
-      setCaptchaToken(null);
-      turnstileRef.current?.reset();
     }
   };
 
@@ -141,13 +133,6 @@ function AuthForm() {
                 {message}
               </div>
             )}
-
-            <Turnstile
-              ref={turnstileRef}
-              siteKey="0x4AAAAAACoVezFPfRqG9AiG"
-              onSuccess={(token) => setCaptchaToken(token)}
-              onExpire={() => setCaptchaToken(null)}
-            />
 
             <button
               type="submit"
