@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -17,6 +17,7 @@ function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const turnstileRef = useRef<any>(null);
   const router = useRouter();
   const supabase = createClient();
 
@@ -66,6 +67,8 @@ function AuthForm() {
       setMessage(error.message);
     } finally {
       setLoading(false);
+      setCaptchaToken(null);
+      turnstileRef.current?.reset();
     }
   };
 
@@ -140,6 +143,7 @@ function AuthForm() {
             )}
 
             <Turnstile
+              ref={turnstileRef}
               siteKey="0x4AAAAAACoVezFPfRqG9AiG"
               onSuccess={(token) => setCaptchaToken(token)}
               onExpire={() => setCaptchaToken(null)}
