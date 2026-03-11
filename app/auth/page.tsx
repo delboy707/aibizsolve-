@@ -9,12 +9,16 @@ function AuthForm() {
   const searchParams = useSearchParams();
   const mode = searchParams.get('mode');
   const redirect = searchParams.get('redirect');
+  const errorParam = searchParams.get('error');
+  const messageParam = searchParams.get('message');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(mode === 'signup');
   const [isResetPassword, setIsResetPassword] = useState(false);
+  const [isResetCallback, setIsResetCallback] = useState(mode === 'reset-callback');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState(errorParam || messageParam || '');
   const router = useRouter();
   const supabase = createClient();
 
@@ -24,9 +28,23 @@ function AuthForm() {
     setMessage('');
 
     try {
+      if (isResetCallback) {
+        if (password !== confirmPassword) {
+          setMessage('Passwords do not match.');
+          setLoading(false);
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        setMessage('Password updated successfully. Redirecting to sign in...');
+        setIsResetCallback(false);
+        setTimeout(() => router.push('/auth'), 2000);
+        return;
+      }
+
       if (isResetPassword) {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth?mode=reset-callback`,
+          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
         });
         if (error) throw error;
         setMessage('Check your email for the password reset link.');
@@ -65,12 +83,14 @@ function AuthForm() {
   };
 
   const getTitle = () => {
+    if (isResetCallback) return 'Set new password';
     if (isResetPassword) return 'Reset your password';
     if (isSignUp) return 'Create your account';
     return 'Welcome back';
   };
 
   const getSubtitle = () => {
+    if (isResetCallback) return 'Enter your new password below.';
     if (isResetPassword) return "Enter your email and we'll send a reset link.";
     if (isSignUp) return '28 days free. No credit card required.';
     return 'Sign in to continue';
@@ -93,24 +113,26 @@ function AuthForm() {
 
         <div className="bg-white p-8 rounded-lg border border-slate-200">
           <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-primary"
-              />
-            </div>
+            {!isResetCallback && (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-primary"
+                />
+              </div>
+            )}
 
             {!isResetPassword && (
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                  Password
+                  {isResetCallback ? 'New Password' : 'Password'}
                 </label>
                 <input
                   id="password"
@@ -124,9 +146,26 @@ function AuthForm() {
               </div>
             )}
 
+            {isResetCallback && (
+              <div>
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-700 mb-1">
+                  Confirm Password
+                </label>
+                <input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-navy-primary"
+                />
+              </div>
+            )}
+
             {message && (
               <div className={`p-3 rounded-md text-sm ${
-                message.includes('Check your email')
+                message.includes('Check your email') || message.includes('successfully') || message.includes('confirmed')
                   ? 'bg-success/10 text-success'
                   : 'bg-error/10 text-error'
               }`}>
@@ -141,6 +180,8 @@ function AuthForm() {
             >
               {loading
                 ? 'Loading...'
+                : isResetCallback
+                ? 'Update Password'
                 : isResetPassword
                 ? 'Send Reset Link'
                 : isSignUp
@@ -150,7 +191,7 @@ function AuthForm() {
           </form>
 
           <div className="mt-6 text-center space-y-2">
-            {!isResetPassword && !isSignUp && (
+            {!isResetPassword && !isSignUp && !isResetCallback && (
               <button
                 onClick={() => { setIsResetPassword(true); setMessage(''); }}
                 className="text-slate-500 hover:text-navy-primary focus:outline-none focus:underline text-sm block w-full"
@@ -159,7 +200,14 @@ function AuthForm() {
               </button>
             )}
 
-            {isResetPassword ? (
+            {isResetCallback ? (
+              <button
+                onClick={() => { setIsResetCallback(false); setMessage(''); router.push('/auth'); }}
+                className="text-navy-primary hover:text-navy-light focus:outline-none focus:underline text-sm"
+              >
+                Back to sign in
+              </button>
+            ) : isResetPassword ? (
               <button
                 onClick={() => { setIsResetPassword(false); setMessage(''); }}
                 className="text-navy-primary hover:text-navy-light focus:outline-none focus:underline text-sm"
