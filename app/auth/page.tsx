@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -21,6 +21,24 @@ function AuthForm() {
   const [message, setMessage] = useState(errorParam || messageParam || '');
   const router = useRouter();
   const supabase = createClient();
+
+  // Handle implicit flow: Supabase may redirect with hash fragment
+  // (#access_token=...&type=recovery) which the server route can't see.
+  // This catches that case client-side.
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash) return;
+
+    const params = new URLSearchParams(hash.substring(1));
+    const type = params.get('type');
+
+    if (type === 'recovery') {
+      // Supabase client auto-picks up the session from the hash fragment.
+      // Just switch to the password reset form.
+      window.history.replaceState(null, '', '/auth?mode=reset-callback');
+      setIsResetCallback(true);
+    }
+  }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
