@@ -55,10 +55,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // If user is signed in and visits auth page, redirect to dashboard
+  // Exception: allow recovery flow through so user can set a new password
   if (request.nextUrl.pathname === '/auth' && user) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+    const mode = request.nextUrl.searchParams.get('mode')
+    if (mode !== 'reset-callback') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/dashboard'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Security headers
