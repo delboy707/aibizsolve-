@@ -56,7 +56,7 @@ export default function Home() {
       <section className="bg-white border-y border-gray-200">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 text-center">
           <p className="text-lg text-gray-700 italic">
-            &ldquo;Built by a consultant with 30+ years of experience across 80+ countries. 583 strategic frameworks from the world&apos;s best business thinking.&rdquo;
+            &ldquo;30 years as a strategist taught me two things: most business problems aren&apos;t unique, and most advice takes too long to arrive. QEP AISolve fixes both.&rdquo;
           </p>
         </div>
       </section>
