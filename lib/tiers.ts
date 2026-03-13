@@ -104,8 +104,14 @@ export function canAccessDomain(tier: TierKey, domain: string): boolean {
   return (TIERS[tier].allowed_domains as readonly string[]).includes(domain);
 }
 
-/** Returns the alchemy display mode for a given tier. */
-export function getAlchemyAccess(tier: TierKey): 'none' | 'teased' | 'full' {
+/** Returns the alchemy display mode for a given tier.
+ *  Free users get full Alchemy on their first (unused) report,
+ *  then fall back to 'teased' after that report is consumed.
+ */
+export function getAlchemyAccess(tier: TierKey, freeReportUsed?: boolean): 'none' | 'teased' | 'full' {
+  if (tier === 'free') {
+    return freeReportUsed ? 'teased' : 'full';
+  }
   return TIERS[tier].alchemy_access;
 }
 

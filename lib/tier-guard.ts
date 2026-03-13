@@ -77,7 +77,7 @@ export async function getTierContext(): Promise<TierContext | null> {
     reportsUsed,
     freeReportUsed,
     canGenerate: canGenerateReport(tier, reportsUsed, freeReportUsed),
-    alchemyAccess: getAlchemyAccess(tier),
+    alchemyAccess: getAlchemyAccess(tier, freeReportUsed),
     canAccessDomain: (domain: string) => canAccessDomain(tier, domain),
     getDomainUpgradeMessage: (domain: string) =>
       getDomainUpgradeMessage(tier, domain),
