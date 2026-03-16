@@ -357,8 +357,28 @@ Include both rational and behavioral questions when appropriate.${classification
           controller.close();
         } catch (error) {
           console.error('[Chat] Streaming error:', error);
-          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: 'Streaming failed' })}\n\n`));
-          controller.close();
+
+          let errorMessage = 'Streaming failed. Please try again.';
+          if (error instanceof Error) {
+            if (error.message.includes('timeout') || error.message.includes('timed out')) {
+              errorMessage = 'The AI service took too long to respond. Please try again.';
+            } else if (error.message.includes('rate') || error.message.includes('429')) {
+              errorMessage = 'The AI service is currently busy. Please try again in a moment.';
+            } else if (error.message.includes('overloaded') || error.message.includes('529')) {
+              errorMessage = 'The AI service is temporarily overloaded. Please try again shortly.';
+            }
+          }
+
+          try {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: errorMessage })}\n\n`));
+          } catch {
+            // Client already disconnected, can't send error
+          }
+          try {
+            controller.close();
+          } catch {
+            // Stream already closed
+          }
         }
       },
     });
@@ -371,13 +391,24 @@ Include both rational and behavioral questions when appropriate.${classification
       },
     });
   } catch (error) {
-    // PRIORITY 2.3: Enhanced error logging
     console.error('[Chat] API error:', {
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined,
     });
+
+    let errorMessage = 'Failed to process message. Please try again.';
+    if (error instanceof Error) {
+      if (error.message.includes('timeout') || error.message.includes('timed out')) {
+        errorMessage = 'The AI service took too long to respond. Please try again.';
+      } else if (error.message.includes('rate') || error.message.includes('429')) {
+        errorMessage = 'The AI service is currently busy. Please try again in a moment.';
+      } else if (error.message.includes('overloaded') || error.message.includes('529')) {
+        errorMessage = 'The AI service is temporarily overloaded. Please try again shortly.';
+      }
+    }
+
     return NextResponse.json(
-      { error: 'Failed to process message' },
+      { error: errorMessage },
       { status: 500 }
     );
   }

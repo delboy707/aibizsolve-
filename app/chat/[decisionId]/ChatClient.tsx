@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import ChatInterface from '@/components/chat/ChatInterface';
 import { AppHeader } from '@/components/layout/AppHeader';
@@ -23,6 +23,14 @@ export default function ChatClient({
   const [generationProgress, setGenerationProgress] = useState('');
   const [userInfo, setUserInfo] = useState<{ email: string; tier: string; hasStripe: boolean } | null>(null);
   const supabase = createClient();
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Abort in-flight requests on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // Fetch user info for header
   useEffect(() => {
@@ -90,6 +98,11 @@ export default function ChatClient({
   }, [decisionId, messages.length, supabase]);
 
   const handleSendMessage = async (content: string) => {
+    // Cancel any previous in-flight request
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
     try {
       // Save user message
       await supabase.from('messages').insert({
@@ -108,16 +121,17 @@ export default function ChatClient({
           decisionId,
           userMessage: content,
         }),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to get AI response');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to get AI response');
       }
 
       // Handle streaming response
       const reader = response.body?.getReader();
       const decoder = new TextDecoder();
-      let streamingMessageId: string | null = null;
       let accumulatedText = '';
 
       if (reader) {
@@ -132,61 +146,93 @@ export default function ChatClient({
         };
         setMessages(prev => [...prev, tempMessage]);
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        let buffer = '';
+        let receivedDone = false;
 
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n');
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const data = JSON.parse(line.slice(6));
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || ''; // Keep incomplete last line in buffer
 
-                if (data.type === 'content') {
-                  accumulatedText += data.text;
-                  // Update the streaming message
-                  setMessages(prev =>
-                    prev.map(msg =>
-                      msg.id === 'streaming-temp'
-                        ? { ...msg, content: accumulatedText }
-                        : msg
-                    )
-                  );
-                } else if (data.type === 'done') {
-                  // Replace temp message with real saved message
-                  setMessages(prev =>
-                    prev.map(msg =>
-                      msg.id === 'streaming-temp' ? data.message : msg
-                    )
-                  );
-                  streamingMessageId = data.message.id;
-                } else if (data.type === 'error') {
-                  // Remove temp message on error
-                  setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                try {
+                  const data = JSON.parse(line.slice(6));
+
+                  if (data.type === 'content') {
+                    accumulatedText += data.text;
+                    // Update the streaming message
+                    setMessages(prev =>
+                      prev.map(msg =>
+                        msg.id === 'streaming-temp'
+                          ? { ...msg, content: accumulatedText }
+                          : msg
+                      )
+                    );
+                  } else if (data.type === 'done') {
+                    receivedDone = true;
+                    // Replace temp message with real saved message
+                    setMessages(prev =>
+                      prev.map(msg =>
+                        msg.id === 'streaming-temp' ? data.message : msg
+                      )
+                    );
+                  } else if (data.type === 'error') {
+                    // Server sent an explicit error event
+                    throw new Error(data.error || 'Something went wrong. Please try again.');
+                  }
+                } catch (e) {
+                  if (e instanceof SyntaxError) {
+                    // Genuinely corrupt JSON — skip this line
+                    console.warn('[Chat] Unparseable SSE data:', line.slice(6).substring(0, 100));
+                  } else {
+                    throw e; // Re-throw application errors
+                  }
                 }
-              } catch (e) {
-                // Ignore JSON parse errors for incomplete chunks
               }
             }
           }
+        } finally {
+          reader.releaseLock();
+        }
+
+        // Stream ended without a proper 'done' event — something went wrong
+        if (!receivedDone) {
+          setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
+          throw new Error('Response was interrupted. Please try again.');
         }
       }
     } catch (error) {
-      throw error;
+      // Clean up temp message on any error
+      setMessages(prev => prev.filter(msg => msg.id !== 'streaming-temp'));
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return; // User navigated away — don't surface error
+      }
+
+      throw error; // Propagate to ChatInterface for display
     }
   };
 
   const handleGenerateDocument = async () => {
+    abortControllerRef.current?.abort();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+
     try {
       setIsGeneratingDocument(true);
       setGenerationProgress('Starting document generation...');
 
-      // Simulate progress updates
-      setTimeout(() => setGenerationProgress('Generating strategic analysis (SCQA)...'), 2000);
-      setTimeout(() => setGenerationProgress('Generating counterintuitive options (Alchemy)...'), 60000);
-      setTimeout(() => setGenerationProgress('Finalizing document...'), 90000);
+      // Progress updates (cosmetic — cleared on completion or error)
+      timeoutIds.push(setTimeout(() => setGenerationProgress('Generating strategic analysis (SCQA)...'), 2000));
+      timeoutIds.push(setTimeout(() => setGenerationProgress('Generating counterintuitive options (Alchemy)...'), 60000));
+      timeoutIds.push(setTimeout(() => setGenerationProgress('Finalizing document...'), 90000));
 
       const response = await fetch('/api/document/generate', {
         method: 'POST',
@@ -194,20 +240,31 @@ export default function ChatClient({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ decisionId }),
+        signal: abortController.signal,
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate document');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate document');
       }
 
       const data = await response.json();
 
+      timeoutIds.forEach(clearTimeout);
       setGenerationProgress('Complete! Redirecting...');
 
       // Redirect to document view
       window.location.href = `/document/${decisionId}`;
-    } catch {
-      alert('Failed to generate document. Please try again.');
+    } catch (error) {
+      timeoutIds.forEach(clearTimeout);
+
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        setIsGeneratingDocument(false);
+        setGenerationProgress('');
+        return;
+      }
+
+      alert(error instanceof Error ? error.message : 'Failed to generate document. Please try again.');
       setIsGeneratingDocument(false);
       setGenerationProgress('');
     }

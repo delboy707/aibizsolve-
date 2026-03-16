@@ -9,6 +9,7 @@ export const anthropic = (): Anthropic => {
     }
     anthropicClient = new Anthropic({
       apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: 60_000, // 60-second timeout — prevents indefinite hangs
     });
   }
   return anthropicClient;

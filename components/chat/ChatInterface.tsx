@@ -25,6 +25,7 @@ export default function ChatInterface({
 }: ChatInterfaceProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const [uploadedDocs, setUploadedDocs] = useState<UploadedDocument[]>(pendingUploads);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -47,11 +48,12 @@ export default function ChatInterface({
   const handleSendMessage = async (content: string) => {
     setIsLoading(true);
     setCurrentStep('Processing your request...');
+    setError(null);
 
     try {
       await onSendMessage(content);
-    } catch {
-      // Error handled by parent
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     } finally {
       setIsLoading(false);
       setCurrentStep('');
@@ -90,6 +92,13 @@ export default function ChatInterface({
         )}
 
         {isLoading && <ProgressIndicator step={currentStep} />}
+
+        {error && (
+          <div className="mx-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-start gap-2">
+            <span className="shrink-0 mt-0.5">⚠</span>
+            <span>{error}</span>
+          </div>
+        )}
       </div>
 
       {/* Input Area */}
