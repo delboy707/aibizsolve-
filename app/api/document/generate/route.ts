@@ -135,6 +135,11 @@ For top 3-5 risks, provide:
 - Mitigation strategy
 - Early warning signals
 
+## Screenshot Summary
+At the very end of your output, include these two labeled lines (used for visual summaries):
+CONVENTIONAL_HEADLINE: [One punchy sentence summarizing the core strategic recommendation]
+ALCHEMY_HEADLINE: [One punchy sentence describing a counterintuitive alternative that challenges the conventional recommendation]
+
 RULES:
 - Be specific and actionable
 - Use concrete numbers and metrics
@@ -418,16 +423,30 @@ export async function POST(req: NextRequest) {
       return roadmap;
     };
 
-    const scqaSections = parseSCQA(scqaDocument);
-    const roadmapSections = parseRoadmap(scqaDocument);
+    // Parse contrast headlines from the Screenshot Summary
+    const parseHeadlines = (doc: string) => {
+      const conventionalMatch = doc.match(/CONVENTIONAL_HEADLINE:\s*(.+)/);
+      const alchemyMatch = doc.match(/ALCHEMY_HEADLINE:\s*(.+)/);
+      return {
+        conventional: conventionalMatch?.[1]?.trim() || '',
+        alchemy: alchemyMatch?.[1]?.trim() || '',
+      };
+    };
+
+    const headlines = parseHeadlines(scqaDocument);
+    // Strip the Screenshot Summary from the document content (not for display)
+    const cleanedScqaDocument = scqaDocument.replace(/\n*## Screenshot Summary[\s\S]*$/, '').trim();
+
+    const scqaSections = parseSCQA(cleanedScqaDocument);
+    const roadmapSections = parseRoadmap(cleanedScqaDocument);
 
     // ── Merge document based on alchemy access ─────────────────────────
-    let fullDocument = scqaDocument;
+    let fullDocument = cleanedScqaDocument;
     const includesAlchemy = tierCtx.alchemyAccess === 'full' && !!alchemySection;
 
     if (includesAlchemy) {
       // Full access: append alchemy section inline
-      fullDocument = `${scqaDocument}\n\n---\n\n## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemySection}`;
+      fullDocument = `${cleanedScqaDocument}\n\n---\n\n## 8. ALCHEMY SECTION: Counterintuitive Options\n\n${alchemySection}`;
     }
     // For 'teased' and 'none': alchemy content is stored separately, not in main document
 
@@ -446,7 +465,13 @@ export async function POST(req: NextRequest) {
         roadmap_30: roadmapSections.days_30 || null,
         roadmap_60: roadmapSections.days_60 || null,
         roadmap_90: roadmapSections.days_90 || null,
-        alchemy_content: alchemySection ? { raw: alchemySection } : null,
+        alchemy_content: (alchemySection || headlines.conventional || headlines.alchemy)
+          ? {
+            ...(alchemySection ? { raw: alchemySection } : {}),
+            ...(headlines.conventional ? { conventional_headline: headlines.conventional } : {}),
+            ...(headlines.alchemy ? { alchemy_headline: headlines.alchemy } : {}),
+          }
+          : null,
         includes_alchemy: includesAlchemy,
       })
       .select()
@@ -489,7 +514,7 @@ export async function POST(req: NextRequest) {
       const { data: { user } } = await supabase.auth.getUser();
       const documentUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://qep-aisolve.app'}/document/${decisionId}`;
 
-      const executiveSummaryMatch = scqaDocument.match(/## 1\. EXECUTIVE SUMMARY[\s\S]*?(?=## 2\.|$)/);
+      const executiveSummaryMatch = cleanedScqaDocument.match(/## 1\. EXECUTIVE SUMMARY[\s\S]*?(?=## 2\.|$)/);
       let executiveSummary = 'Your comprehensive strategic analysis is ready for review.';
 
       if (executiveSummaryMatch) {

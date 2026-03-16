@@ -58,6 +58,9 @@ export default async function DocumentPage({
 
   // Pass the raw alchemy content for teased mode (stored separately in DB)
   const alchemyRaw: string = document.alchemy_content?.raw || '';
+  // Contrast block headlines (generated via Screenshot Summary prompt)
+  const conventionalHeadline: string = document.alchemy_content?.conventional_headline || '';
+  const alchemyHeadline: string = document.alchemy_content?.alchemy_headline || '';
 
   // Fetch user profile for header
   const { data: { user } } = await supabase.auth.getUser();
@@ -73,6 +76,9 @@ export default async function DocumentPage({
       document={document}
       alchemyAccess={tierCtx.alchemyAccess}
       alchemyRaw={alchemyRaw}
+      conventionalHeadline={conventionalHeadline}
+      alchemyHeadline={alchemyHeadline}
+      reportDomain={decision.classified_domains?.[0] || 'strategy'}
       userEmail={user?.email || ''}
       userTier={userProfile?.subscription_tier || 'free'}
       hasStripe={!!userProfile?.stripe_customer_id}
