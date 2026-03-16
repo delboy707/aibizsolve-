@@ -33,6 +33,19 @@ interface ContrastBlockProps {
   reportDomain: string;
 }
 
+function ReportBrandedFooter() {
+  return (
+    <div className="mt-12 pt-4 border-t border-slate-200 text-center">
+      <p className="text-xs text-slate-400">
+        Strategic intelligence by{' '}
+        <span className="font-semibold text-slate-600">QEP AISolve</span>
+        {' · '}
+        <span className="text-amber-600">qepaisolve.com</span>
+      </p>
+    </div>
+  );
+}
+
 function ShareableContrastBlock({
   conventionalInsight,
   alchemyInsight,
@@ -511,6 +524,11 @@ export default function DocumentClient({ decisionId, document, alchemyAccess, al
                 Continue Conversation
               </Link>
             </div>
+          </div>
+
+          {/* Branded footer */}
+          <div className="px-8 pb-8">
+            <ReportBrandedFooter />
           </div>
         </div>
       </main>
