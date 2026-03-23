@@ -75,19 +75,19 @@ export default function ExamplePrompts({ onExampleClick }: ExamplePromptsProps) 
           <ol className="space-y-2 text-sm text-primary-800">
             <li className="flex gap-3">
               <span className="font-bold">1.</span>
-              <span><strong>You describe your problem</strong> — Be specific about what's not working</span>
+              <span><strong>Describe your challenge</strong> — Be specific about what&#39;s not working</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">2.</span>
-              <span><strong>Claude asks 2-4 questions</strong> — To understand context, constraints, and what you've tried</span>
+              <span><strong>We ask 2-4 clarifying questions</strong> — To understand context, constraints, and what you&#39;ve tried</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">3.</span>
-              <span><strong>Click "Generate Document"</strong> — Appears after 3+ messages (takes ~2 minutes)</span>
+              <span><strong>Click Generate Document</strong> — Appears after 3+ messages (takes approximately 2 minutes)</span>
             </li>
             <li className="flex gap-3">
               <span className="font-bold">4.</span>
-              <span><strong>Review two types of insights:</strong> Strategic analysis (SCQA) + Counterintuitive options (Alchemy)</span>
+              <span><strong>Review two types of insight:</strong> Strategic Analysis (SCQA Framework) + Behavioural Alchemy (Counterintuitive Options)</span>
             </li>
           </ol>
         </div>
