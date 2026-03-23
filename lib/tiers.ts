@@ -104,8 +104,10 @@ export function canAccessDomain(tier: TierKey, domain: string): boolean {
   return (TIERS[tier].allowed_domains as readonly string[]).includes(domain);
 }
 
+export type AlchemyAccess = 'none' | 'teased' | 'full';
+
 /** Returns the alchemy display mode for a given tier. */
-export function getAlchemyAccess(tier: TierKey): 'none' | 'teased' | 'full' {
+export function getAlchemyAccess(tier: TierKey): AlchemyAccess {
   return TIERS[tier].alchemy_access;
 }
 
