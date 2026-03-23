@@ -30,11 +30,27 @@ const examplePrompts = [
     ],
   },
   {
+    category: 'Innovation & Product',
+    prompts: [
+      "We have ideas but nothing ships. How do we build an innovation pipeline?",
+      "Our product feels stale compared to competitors. How do we differentiate?",
+      "We want to test new concepts but can't afford to fail big. What's the approach?",
+    ],
+  },
+  {
     category: 'People & Culture',
     prompts: [
       "We can't hire fast enough and keep losing good people. What's the fix?",
       "Our team doesn't feel aligned on where we're going. How do we fix this?",
       "We hired managers but they're not leading. How do we develop them?",
+    ],
+  },
+  {
+    category: 'Finance & Profitability',
+    prompts: [
+      "Our revenue is growing but cash flow is tight. How do we fix this?",
+      "We need to cut costs without killing growth. Where do we start?",
+      "Our pricing doesn't reflect our value. How should we restructure it?",
     ],
   },
 ];
@@ -77,7 +93,7 @@ export default function ExamplePrompts({ onExampleClick }: ExamplePromptsProps) 
         </div>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {examplePrompts.map((category) => (
           <div
             key={category.category}
