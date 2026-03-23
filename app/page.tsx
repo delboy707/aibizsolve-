@@ -124,26 +124,20 @@ export default function Home() {
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {[
-            { name: 'Strategy', available: true },
-            { name: 'Marketing', available: true },
-            { name: 'Sales', available: true },
-            { name: 'Innovation', available: false },
-            { name: 'Operations', available: false },
-            { name: 'HR', available: false },
-            { name: 'Finance', available: false },
-          ].map((domain) => (
+            'Strategy',
+            'Marketing',
+            'Sales',
+            'Innovation',
+            'Operations',
+            'HR & People',
+            'Finance',
+          ].map((name) => (
             <div
-              key={domain.name}
-              className={`rounded-xl border p-5 text-center ${
-                domain.available
-                  ? 'bg-white border-gray-200 shadow-sm'
-                  : 'bg-gray-50 border-gray-100'
-              }`}
+              key={name}
+              className="rounded-xl border bg-white border-gray-200 shadow-sm p-5 text-center"
             >
-              <span className="text-lg font-semibold text-gray-900">{domain.name}</span>
-              <p className={`text-xs mt-1 font-medium ${domain.available ? 'text-green-600' : 'text-gray-400'}`}>
-                {domain.available ? 'Available' : 'Coming soon — Founding Leader'}
-              </p>
+              <span className="text-lg font-semibold text-gray-900">{name}</span>
+              <p className="text-xs mt-1 font-medium text-green-600">Available</p>
             </div>
           ))}
         </div>

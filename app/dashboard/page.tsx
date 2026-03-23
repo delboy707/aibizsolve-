@@ -2,10 +2,11 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { DecisionsList } from '@/components/dashboard/DecisionsList';
+import { DomainGrid } from '@/components/dashboard/DomainGrid';
 import { ManageSubscriptionButton } from '@/components/dashboard/ManageSubscriptionButton';
 import { TIERS } from '@/lib/tiers';
 import type { TierKey } from '@/lib/tiers';
-import type { Decision } from '@/types';
+import type { Decision, Domain } from '@/types';
 
 const TIER_BADGES: Record<string, { label: string; className: string }> = {
   free: { label: 'FREE', className: 'bg-gray-100 text-gray-600 border-gray-200' },
@@ -213,6 +214,13 @@ export default async function DashboardPage() {
             </p>
           </div>
         </div>
+
+        {/* Domain Grid */}
+        <DomainGrid
+          allowedDomains={[...tierConfig.allowed_domains] as Domain[]}
+          tierKey={tier}
+          isTrial={tier === 'free' && !freeReportUsed}
+        />
 
         {/* Report History */}
         <div>

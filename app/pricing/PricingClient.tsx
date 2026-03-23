@@ -68,10 +68,8 @@ const tiers: Tier[] = [
     popular: false,
     features: [
       'Everything in Professional',
-      'Innovation module (on launch)',
-      'Operations module (on launch)',
-      'HR module (on launch)',
-      'Finance module (on launch)',
+      'All 7 business domains',
+      'Full access to Innovation, Operations, HR & People, Finance',
       'Guaranteed early adopter pricing',
     ],
   },
