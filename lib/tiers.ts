@@ -88,6 +88,9 @@ export const TIERS = {
 
 export type TierKey = keyof typeof TIERS;
 
+/** Possible alchemy display modes returned by getAlchemyAccess(). */
+export type AlchemyAccess = 'none' | 'teased' | 'full';
+
 /** Labels shown in UI badges, sorted cheapest → most expensive. */
 export const TIER_ORDER: TierKey[] = [
   'free',
@@ -121,7 +124,7 @@ export function canAccessDomain(tier: TierKey, domain: string): boolean {
 }
 
 /** Returns the alchemy display mode for a given tier. */
-export function getAlchemyAccess(tier: TierKey): 'none' | 'teased' | 'full' {
+export function getAlchemyAccess(tier: TierKey): AlchemyAccess {
   return TIERS[tier].alchemy_access;
 }
 
