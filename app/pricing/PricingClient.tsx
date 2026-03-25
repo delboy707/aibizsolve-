@@ -19,7 +19,7 @@ const TIER_UI: Record<
 > = {
   free: {
     tagline: 'Try it on a real problem',
-    cta: 'Get Your Free Report',
+    cta: 'Try Free Report',
     popular: false,
     features: [
       '1 strategic report',
@@ -31,7 +31,7 @@ const TIER_UI: Record<
   },
   starter: {
     tagline: 'Test the value',
-    cta: 'Start Free Trial',
+    cta: 'Get Started',
     popular: false,
     features: [
       '3 reports per month',
@@ -43,7 +43,7 @@ const TIER_UI: Record<
   },
   professional: {
     tagline: 'Full capability for serious leaders',
-    cta: 'Start Free Trial',
+    cta: 'Get Started',
     popular: true,
     features: [
       'Unlimited reports',
@@ -56,7 +56,7 @@ const TIER_UI: Record<
   },
   founding_leader: {
     tagline: 'Lock in early adopter pricing',
-    cta: 'Become a Founding Leader',
+    cta: 'Get Started',
     popular: false,
     features: [
       'Everything in Professional',
