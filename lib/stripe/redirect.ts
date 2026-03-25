@@ -6,11 +6,17 @@ import { TIERS, TierKey } from '@/lib/tiers';
  *
  * Returns null for the free tier (no payment link).
  */
-export function getCheckoutUrl(tier: TierKey, userId: string): string | null {
+export function getCheckoutUrl(
+  tier: TierKey,
+  userId: string,
+  interval: 'monthly' | 'annual' = 'monthly',
+): string | null {
   const config = TIERS[tier];
-  if (!config.payment_link) return null;
+  const link =
+    interval === 'annual' ? config.annual_payment_link : config.payment_link;
+  if (!link) return null;
 
-  const url = new URL(config.payment_link);
+  const url = new URL(link);
   url.searchParams.set('client_reference_id', userId);
   return url.toString();
 }
