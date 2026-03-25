@@ -2,32 +2,24 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { TIERS, TIER_ORDER, type TierKey } from '@/lib/tiers';
 
 type BillingInterval = 'monthly' | 'annual';
 
-interface Tier {
-  name: string;
-  price: number;
-  annual_price: number | null;
-  monthly_equivalent: number | null;
-  tagline: string;
-  cta: string;
-  href: string;
-  annualHref?: string;
-  popular: boolean;
-  features: string[];
-  lockedFeature?: string;
-}
-
-const tiers: Tier[] = [
+/** UI-only display config per tier (things that don't belong in lib/tiers.ts). */
+const TIER_UI: Record<
+  TierKey,
   {
-    name: 'Free',
-    price: 0,
-    annual_price: null,
-    monthly_equivalent: null,
+    tagline: string;
+    cta: string;
+    popular: boolean;
+    features: string[];
+    lockedFeature?: string;
+  }
+> = {
+  free: {
     tagline: 'Try it on a real problem',
     cta: 'Get Your Free Report',
-    href: '/auth?mode=signup',
     popular: false,
     features: [
       '1 strategic report',
@@ -37,15 +29,9 @@ const tiers: Tier[] = [
       'Behavioural Alchemy (on your free report)',
     ],
   },
-  {
-    name: 'Starter',
-    price: 29,
-    annual_price: 261,
-    monthly_equivalent: 21.75,
+  starter: {
     tagline: 'Test the value',
     cta: 'Start Free Trial',
-    href: '/auth?mode=signup',
-    annualHref: '/auth?mode=signup&plan=starter_annual',
     popular: false,
     features: [
       '3 reports per month',
@@ -55,15 +41,9 @@ const tiers: Tier[] = [
     ],
     lockedFeature: 'Behavioural Alchemy insight',
   },
-  {
-    name: 'Professional',
-    price: 79,
-    annual_price: 711,
-    monthly_equivalent: 59.25,
+  professional: {
     tagline: 'Full capability for serious leaders',
     cta: 'Start Free Trial',
-    href: '/auth?mode=signup',
-    annualHref: '/auth?mode=signup&plan=professional_annual',
     popular: true,
     features: [
       'Unlimited reports',
@@ -74,15 +54,9 @@ const tiers: Tier[] = [
       'Risk mitigation strategies',
     ],
   },
-  {
-    name: 'Founding Leader',
-    price: 149,
-    annual_price: 1341,
-    monthly_equivalent: 111.75,
+  founding_leader: {
     tagline: 'Lock in early adopter pricing',
     cta: 'Become a Founding Leader',
-    href: '/auth?mode=signup',
-    annualHref: '/auth?mode=signup&plan=founding_leader_annual',
     popular: false,
     features: [
       'Everything in Professional',
@@ -93,7 +67,9 @@ const tiers: Tier[] = [
       'Guaranteed early adopter pricing',
     ],
   },
-];
+};
+
+const AUTH_FALLBACK = '/auth?mode=signup';
 
 export default function PricingClient() {
   const [interval, setInterval] = useState<BillingInterval>('monthly');
@@ -162,20 +138,37 @@ export default function PricingClient() {
 
         {/* Pricing Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-start">
-          {tiers.map((tier) => {
+          {TIER_ORDER.map((tierKey) => {
+            const tier = TIERS[tierKey];
+            const ui = TIER_UI[tierKey];
+            const isFree = tier.price === 0;
             const showAnnual = interval === 'annual' && tier.annual_price !== null;
-            const ctaHref = showAnnual && tier.annualHref ? tier.annualHref : tier.href;
+
+            // Free tier → auth signup. Paid tiers → Stripe Payment Link (with auth fallback).
+            let ctaHref: string;
+            let opensNewTab = false;
+            if (isFree) {
+              ctaHref = AUTH_FALLBACK;
+            } else {
+              const link = showAnnual ? tier.annual_payment_link : tier.payment_link;
+              if (link) {
+                ctaHref = link;
+                opensNewTab = true;
+              } else {
+                ctaHref = AUTH_FALLBACK;
+              }
+            }
 
             return (
               <div
-                key={tier.name}
+                key={tierKey}
                 className={`relative bg-white rounded-2xl border-2 p-6 flex flex-col ${
-                  tier.popular
+                  ui.popular
                     ? 'border-primary-600 shadow-lg lg:scale-105'
                     : 'border-gray-200 shadow-sm'
                 }`}
               >
-                {tier.popular && (
+                {ui.popular && (
                   <div className="absolute -top-4 left-1/2 -translate-x-1/2">
                     <span className="bg-primary-600 text-white text-sm font-semibold px-4 py-1 rounded-full whitespace-nowrap">
                       Most Popular
@@ -192,11 +185,11 @@ export default function PricingClient() {
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-gray-500">{tier.tagline}</p>
+                  <p className="text-sm text-gray-500">{ui.tagline}</p>
                 </div>
 
                 <div className="mb-5">
-                  {tier.price === 0 ? (
+                  {isFree ? (
                     <span className="text-5xl font-bold text-gray-900">$0</span>
                   ) : showAnnual ? (
                     <>
@@ -217,32 +210,33 @@ export default function PricingClient() {
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-1">
-                  {tier.features.map((feature) => (
+                  {ui.features.map((feature) => (
                     <li key={feature} className="flex items-start gap-3">
                       <span className="text-primary-600 font-bold mt-0.5 flex-shrink-0">✓</span>
                       <span className="text-gray-700 text-sm">{feature}</span>
                     </li>
                   ))}
-                  {tier.lockedFeature && (
+                  {ui.lockedFeature && (
                     <li className="flex items-start gap-3">
                       <span className="text-gray-400 mt-0.5 flex-shrink-0">✕</span>
-                      <span className="text-sm text-gray-400">{tier.lockedFeature}</span>
+                      <span className="text-sm text-gray-400">{ui.lockedFeature}</span>
                     </li>
                   )}
                 </ul>
 
-                <Link
+                <a
                   href={ctaHref}
+                  {...(opensNewTab ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
                   className={`block w-full text-center py-3 px-4 rounded-lg font-semibold text-sm transition-colors ${
-                    tier.popular
+                    ui.popular
                       ? 'bg-primary-600 text-white hover:bg-primary-700'
-                      : tier.price === 0
+                      : isFree
                       ? 'bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100'
                       : 'bg-gray-100 text-gray-900 hover:bg-gray-200'
                   }`}
                 >
-                  {tier.cta}
-                </Link>
+                  {ui.cta}
+                </a>
               </div>
             );
           })}
