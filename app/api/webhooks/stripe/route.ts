@@ -6,9 +6,14 @@ import Stripe from 'stripe';
 // Map subscription price (in cents) to the new subscription_tier values.
 // These match the three fixed tiers from the revised pricing model.
 const PRICE_TO_TIER: Record<number, string> = {
-  2900: 'starter',          // $29/month
-  7900: 'professional',     // $79/month
-  14900: 'founding_leader', // $149/month
+  // Monthly
+  2900: 'starter',           // $29/month
+  7900: 'professional',      // $79/month
+  14900: 'founding_leader',  // $149/month
+  // Annual
+  26100: 'starter',          // $261/year
+  71100: 'professional',     // $711/year
+  134100: 'founding_leader', // $1,341/year
 };
 
 function getTierFromAmount(amountInCents: number): string {

@@ -28,6 +28,10 @@ export const TIERS = {
      */
     alchemy_access: 'teased' as const,
     payment_link: null,
+    annual_price: null,
+    monthly_equivalent: null,
+    discount_percent: null,
+    annual_payment_link: null,
     description: 'One free strategic report',
   },
 
@@ -35,6 +39,10 @@ export const TIERS = {
     name: 'Starter',
     price: 29,
     payment_link: process.env.NEXT_PUBLIC_STRIPE_LINK_STARTER!,
+    annual_price: 261,
+    monthly_equivalent: 21.75,
+    discount_percent: 25,
+    annual_payment_link: process.env.NEXT_PUBLIC_STRIPE_LINK_STARTER_ANNUAL!,
     reports_per_month: 3,
     allowed_domains: ['strategy'],
     alchemy_access: 'none' as const,
@@ -45,6 +53,10 @@ export const TIERS = {
     name: 'Professional',
     price: 79,
     payment_link: process.env.NEXT_PUBLIC_STRIPE_LINK_PROFESSIONAL!,
+    annual_price: 711,
+    monthly_equivalent: 59.25,
+    discount_percent: 25,
+    annual_payment_link: process.env.NEXT_PUBLIC_STRIPE_LINK_PROFESSIONAL_ANNUAL!,
     reports_per_month: Infinity,
     allowed_domains: ['strategy', 'marketing', 'sales'],
     alchemy_access: 'full' as const,
@@ -55,6 +67,10 @@ export const TIERS = {
     name: 'Founding Leader',
     price: 149,
     payment_link: process.env.NEXT_PUBLIC_STRIPE_LINK_FOUNDING_LEADER!,
+    annual_price: 1341,
+    monthly_equivalent: 111.75,
+    discount_percent: 25,
+    annual_payment_link: process.env.NEXT_PUBLIC_STRIPE_LINK_FOUNDING_LEADER_ANNUAL!,
     reports_per_month: Infinity,
     allowed_domains: [
       'strategy',
@@ -71,6 +87,9 @@ export const TIERS = {
 } as const;
 
 export type TierKey = keyof typeof TIERS;
+
+/** Possible alchemy display modes returned by getAlchemyAccess(). */
+export type AlchemyAccess = 'none' | 'teased' | 'full';
 
 /** Labels shown in UI badges, sorted cheapest → most expensive. */
 export const TIER_ORDER: TierKey[] = [
@@ -105,7 +124,7 @@ export function canAccessDomain(tier: TierKey, domain: string): boolean {
 }
 
 /** Returns the alchemy display mode for a given tier. */
-export function getAlchemyAccess(tier: TierKey): 'none' | 'teased' | 'full' {
+export function getAlchemyAccess(tier: TierKey): AlchemyAccess {
   return TIERS[tier].alchemy_access;
 }
 
