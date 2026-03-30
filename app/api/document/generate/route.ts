@@ -8,6 +8,8 @@ import { generateEmbedding } from '@/lib/ai/openai';
 import { analyzeCrossDomainSynergy, Domain } from '@/lib/ai/synergy';
 import { classifyProblem } from '@/lib/ai/classify';
 import { getTierContext } from '@/lib/tier-guard';
+import { generateLimiter } from '@/lib/rate-limit';
+import { checkRateLimit } from '@/lib/rate-limit-check';
 
 // Vector search helper — uses admin client to bypass RLS on shared workflows table
 async function searchWorkflows(
@@ -152,6 +154,10 @@ export async function POST(req: NextRequest) {
     if (!tierCtx) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimitResponse = await checkRateLimit(generateLimiter, tierCtx.userId);
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Check report limits
     if (!tierCtx.canGenerate) {

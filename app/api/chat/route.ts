@@ -4,6 +4,8 @@ import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { anthropic, MODELS } from '@/lib/ai/anthropic';
 import { CLARIFYING_PROMPT, CLASSIFICATION_PROMPT, SYSTEM_PREAMBLE } from '@/lib/ai/prompts';
 import { generateEmbedding } from '@/lib/ai/openai';
+import { chatLimiter } from '@/lib/rate-limit';
+import { checkRateLimit } from '@/lib/rate-limit-check';
 
 // Classification helper function (runs on first message)
 async function classifyProblem(problem: string): Promise<{
@@ -124,6 +126,10 @@ export async function POST(req: NextRequest) {
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limit check
+    const rateLimitResponse = await checkRateLimit(chatLimiter, user.id);
+    if (rateLimitResponse) return rateLimitResponse;
 
     const { decisionId, userMessage } = await req.json();
 
