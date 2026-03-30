@@ -14,11 +14,18 @@ export async function POST(req: NextRequest) {
 
     const supabase = await createClient();
 
-    // Get document record
+    // Verify authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Get document record — filter by user_id for ownership verification
     const { data: document, error: docError } = await supabase
       .from('uploaded_documents')
       .select('*')
       .eq('id', documentId)
+      .eq('user_id', user.id)
       .single();
 
     if (docError || !document) {

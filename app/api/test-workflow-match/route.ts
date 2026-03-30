@@ -3,6 +3,16 @@ import { createClient as createAdminClient } from '@/lib/supabase/admin';
 import { generateEmbedding } from '@/lib/ai/openai';
 
 export async function GET(req: NextRequest) {
+  // Require ADMIN_SEED_SECRET to prevent unauthorized access
+  const adminSecret = process.env.ADMIN_SEED_SECRET;
+  if (!adminSecret) {
+    return NextResponse.json({ error: 'Test endpoint disabled' }, { status: 403 });
+  }
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || authHeader !== `Bearer ${adminSecret}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   const results: Record<string, any> = {
     timestamp: new Date().toISOString(),
     steps: [],

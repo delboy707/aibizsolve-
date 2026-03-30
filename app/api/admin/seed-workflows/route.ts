@@ -37,8 +37,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Admin endpoint disabled' }, { status: 403 });
     }
 
+    // Accept secret via Authorization header (preferred) or query param (legacy)
+    const authHeader = req.headers.get('authorization');
     const { searchParams } = new URL(req.url);
-    const providedKey = searchParams.get('key') || '';
+    const providedKey = authHeader?.startsWith('Bearer ')
+      ? authHeader.slice(7)
+      : searchParams.get('key') || '';
     if (providedKey.length === 0 || providedKey !== ADMIN_SECRET) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
