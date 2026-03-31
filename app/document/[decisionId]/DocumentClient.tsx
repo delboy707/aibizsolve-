@@ -406,16 +406,26 @@ export default function DocumentClient({ decisionId, document, alchemyAccess, al
 
           {/* Actions */}
           <div className="p-8 pt-0 border-t border-gray-200 flex justify-between items-center">
-            <button
-              onClick={() => {
-                const contentToCopy = activeTab === 'strategic' ? strategicContent : alchemyContent;
-                navigator.clipboard.writeText(contentToCopy);
-                alert(`${activeTab === 'strategic' ? 'Strategic Document' : 'Alchemy Insights'} copied to clipboard!`);
-              }}
-              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-            >
-              Copy {activeTab === 'strategic' ? 'Strategic Document' : 'Alchemy Insights'}
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  const contentToCopy = activeTab === 'strategic' ? strategicContent : alchemyContent;
+                  navigator.clipboard.writeText(contentToCopy);
+                  alert(`${activeTab === 'strategic' ? 'Strategic Document' : 'Alchemy Insights'} copied to clipboard!`);
+                }}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              >
+                Copy {activeTab === 'strategic' ? 'Strategic Document' : 'Alchemy Insights'}
+              </button>
+              <button onClick={downloadText} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2" title="Download as plain text">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                TXT
+              </button>
+              <button onClick={downloadMarkdown} className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2" title="Download as markdown">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                Download MD
+              </button>
+            </div>
             <div className="flex gap-2">
               <button
                 onClick={handleRegenerate}
